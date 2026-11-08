@@ -1,0 +1,62 @@
+{
+  "catalogVersion": "2026.11.1",
+  "currency": "BRL",
+  "packages": [
+    {
+      "productId": "credits_10",
+      "credits": 10,
+      "title": "10 créditos",
+      "subtitle": "Para testar um recurso avançado",
+      "priceCents": 490,
+      "displayPrice": "R$ 4,90",
+      "highlighted": false,
+      "playProductId": "meta_feita_credits_10"
+    },
+    {
+      "productId": "credits_30",
+      "credits": 30,
+      "title": "30 créditos",
+      "subtitle": "Mais usado",
+      "priceCents": 1190,
+      "displayPrice": "R$ 11,90",
+      "highlighted": true,
+      "playProductId": "meta_feita_credits_30"
+    },
+    {
+      "productId": "credits_80",
+      "credits": 80,
+      "title": "80 créditos",
+      "subtitle": "Para muitas comparações",
+      "priceCents": 2490,
+      "displayPrice": "R$ 24,90",
+      "highlighted": false,
+      "playProductId": "meta_feita_credits_80"
+    }
+  ],
+  "features": [
+    {
+      "featureId": "detailed_report",
+      "title": "Relatório detalhado",
+      "description": "Exportação completa em texto/CSV estruturado com todas as premissas e série mês a mês.",
+      "creditCost": 2
+    },
+    {
+      "featureId": "extended_comparison",
+      "title": "Comparação ampliada (3 a 4 cenários)",
+      "description": "Análise comparativa estendida com até 4 cenários simultâneos e resumo detalhado.",
+      "creditCost": 2
+    },
+    {
+      "featureId": "advanced_reinvestment",
+      "title": "Reinvestimento com múltiplos preços",
+      "description": "Simulação avançada com série hipotética de preços e auditoria evento a evento.",
+      "creditCost": 3
+    }
+  ],
+  "rewardedAd": {
+    "creditsPerView": 1,
+    "dailyLimit": 5,
+    "enabled": true
+  }
+}
+

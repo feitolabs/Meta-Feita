@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="areia">#F3EDE2</color>
+    <color name="petroleo">#0E3B43</color>
+    <color name="azul_rio">#1F7A8C</color>
+    <color name="azul_rio_claro">#5FB3C2</color>
+    <color name="nevoa">#8FC1C9</color>
+    <color name="nevoa_claro">#A9D3DA</color>
+    <color name="brasa">#F26B21</color>
+    <color name="brasa_claro">#FF8A4C</color>
+</resources>

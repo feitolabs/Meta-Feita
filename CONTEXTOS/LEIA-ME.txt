@@ -1,0 +1,12 @@
+Meta Feita · pacote de ícones (Feito Labs)
+
+1-icone-do-app      Símbolo em 5 versões: SVG e PNG (1024, 512, 192).
+2-android/res       Copie para android/app/src/main/res: mipmaps de mdpi a xxxhdpi,
+                    ícone adaptável (fundo Petróleo + frente + monocromático) e cores.
+2-android/google-play  Ícone da loja, 512 x 512, sem cantos (a Play aplica a máscara).
+3-web               favicon.svg/.ico, apple-touch-icon, ícones PWA e manifest.webmanifest.
+4-icones-interface  32 ícones: SVG (currentColor), PNG em Petróleo e em Areia
+                    (24, 48, 96 px) e Vector Drawables Android (24 dp).
+
+Cores: Areia #F3EDE2 · Petróleo #0E3B43 · Azul Rio #1F7A8C · Névoa #8FC1C9 · Brasa #F26B21
+Traço dos ícones: 1,8 px numa grade de 24 px, pontas arredondadas.

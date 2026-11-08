@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: meta-feita-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=development
+      - DATABASE_PATH=/app/data/meta_feita_monetization.db
+      - CATALOG_PATH=/app/catalog.json
+      - CORS_ORIGINS=http://localhost:8080,http://localhost:3000,http://127.0.0.1:8080,http://localhost:5000
+    volumes:
+      - backend-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  backend-data:

@@ -66,49 +66,51 @@ class SplashScreen extends StatelessWidget {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 88,
-                      height: 88,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 88,
+                        height: 88,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        alignment: Alignment.center,
+                        child: const MetaFeitaLogo(
+                          variant: MetaFeitaLogoVariant.principalPetroleo,
+                          size: 62,
+                        ),
                       ),
-                      alignment: Alignment.center,
-                      child: const MetaFeitaLogo(
-                        variant: MetaFeitaLogoVariant.principalPetroleo,
-                        size: 62,
+                      const SizedBox(height: 24),
+                      Text(
+                        'Meta Feita',
+                        style: MfText.titulo.copyWith(
+                          color: Colors.white,
+                          fontSize: 36,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Meta Feita',
-                      style: MfText.titulo.copyWith(
-                        color: Colors.white,
-                        fontSize: 36,
+                      const SizedBox(height: 12),
+                      Text(
+                        'Contas claras para planejar o seu dinheiro.',
+                        textAlign: TextAlign.center,
+                        style: MfText.corpo.copyWith(
+                          color: MfColors.nevoaClaro,
+                          fontSize: 17,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Contas claras para planejar o seu dinheiro.',
-                      textAlign: TextAlign.center,
-                      style: MfText.corpo.copyWith(
-                        color: MfColors.nevoaClaro,
-                        fontSize: 17,
+                      const SizedBox(height: 44),
+                      Text(
+                        'UM APP FEITO LABS',
+                        style: MfText.legenda.copyWith(
+                          color: MfColors.azulRioClaro,
+                          letterSpacing: 2.2,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 44),
-                    Text(
-                      'UM APP FEITO LABS',
-                      style: MfText.legenda.copyWith(
-                        color: MfColors.azulRioClaro,
-                        letterSpacing: 2.2,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -118,4 +120,3 @@ class SplashScreen extends StatelessWidget {
     );
   }
 }
-

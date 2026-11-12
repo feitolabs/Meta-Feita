@@ -38,9 +38,11 @@ class CompoundInterestEngine {
     for (var idx = 0; idx < input.irregularContributions.length; idx++) {
       final item = input.irregularContributions[idx];
       if (item.amount < Decimal.zero) {
-        errors['irregularContributions'] = 'Aportes extras não podem ser negativos.';
+        errors['irregularContributions'] =
+            'Aportes extras não podem ser negativos.';
       }
-      if (item.date.compareTo(startDate) < 0 || item.date.compareTo(endDate) > 0) {
+      if (item.date.compareTo(startDate) < 0 ||
+          item.date.compareTo(endDate) > 0) {
         errors['irregularContributions'] =
             'As datas dos aportes irregulares devem estar dentro do prazo simulado.';
       }
@@ -70,7 +72,11 @@ class CompoundInterestEngine {
             withdrawals: Decimal.zero,
           ),
         ],
-        assumptions: _buildAssumptions(input, effectiveMonthlyRate, effectiveAnnualRate),
+        assumptions: _buildAssumptions(
+          input,
+          effectiveMonthlyRate,
+          effectiveAnnualRate,
+        ),
       );
     }
 
@@ -122,7 +128,9 @@ class CompoundInterestEngine {
           ? Decimal.zero
           : DecimalMath.roundInternal(balance * effectiveMonthlyRate);
       balance = DecimalMath.roundInternal(balance + periodReturn);
-      cumulativeReturn = DecimalMath.roundInternal(cumulativeReturn + periodReturn);
+      cumulativeReturn = DecimalMath.roundInternal(
+        cumulativeReturn + periodReturn,
+      );
 
       if (pmt > Decimal.zero &&
           input.contributionTiming == ContributionTiming.end) {
@@ -155,7 +163,11 @@ class CompoundInterestEngine {
       effectiveMonthlyRate: effectiveMonthlyRate,
       effectiveAnnualRate: effectiveAnnualRate,
       series: series,
-      assumptions: _buildAssumptions(input, effectiveMonthlyRate, effectiveAnnualRate),
+      assumptions: _buildAssumptions(
+        input,
+        effectiveMonthlyRate,
+        effectiveAnnualRate,
+      ),
     );
   }
 
@@ -216,7 +228,8 @@ class CompoundInterestEngine {
           }
           cursor = cursor.addDays(7);
         }
-      } else if (input.contributionFrequency != ContributionFrequency.irregular) {
+      } else if (input.contributionFrequency !=
+          ContributionFrequency.irregular) {
         for (var m = 1; m <= input.termMonths; m++) {
           final pmt = _periodicContributionForMonth(
             month: m,
@@ -262,21 +275,26 @@ class CompoundInterestEngine {
       var monthReturn = Decimal.zero;
 
       // Ordena eventos neste intervalo [prevCheckpoint, nextCheckpoint]
-      final intervalDates = eventsByDate.keys
-          .where((d) =>
-              (m == 1
-                  ? d.compareTo(prevCheckpoint) >= 0
-                  : d.compareTo(prevCheckpoint) > 0) &&
-              d.compareTo(nextCheckpoint) <= 0)
-          .toList()
-        ..sort();
+      final intervalDates =
+          eventsByDate.keys
+              .where(
+                (d) =>
+                    (m == 1
+                        ? d.compareTo(prevCheckpoint) >= 0
+                        : d.compareTo(prevCheckpoint) > 0) &&
+                    d.compareTo(nextCheckpoint) <= 0,
+              )
+              .toList()
+            ..sort();
 
       var cursor = prevCheckpoint;
       for (final d in intervalDates) {
         final days = cursor.daysBetween(d);
         if (days > 0 && dailyRate != Decimal.zero) {
           final factor = DecimalMath.powInt(Decimal.one + dailyRate, days);
-          final ret = DecimalMath.roundInternal(balance * (factor - Decimal.one));
+          final ret = DecimalMath.roundInternal(
+            balance * (factor - Decimal.one),
+          );
           balance = DecimalMath.roundInternal(balance + ret);
           monthReturn += ret;
           cumulativeReturn = DecimalMath.roundInternal(cumulativeReturn + ret);
@@ -290,7 +308,10 @@ class CompoundInterestEngine {
 
       final remainingDays = cursor.daysBetween(nextCheckpoint);
       if (remainingDays > 0 && dailyRate != Decimal.zero) {
-        final factor = DecimalMath.powInt(Decimal.one + dailyRate, remainingDays);
+        final factor = DecimalMath.powInt(
+          Decimal.one + dailyRate,
+          remainingDays,
+        );
         final ret = DecimalMath.roundInternal(balance * (factor - Decimal.one));
         balance = DecimalMath.roundInternal(balance + ret);
         monthReturn += ret;
@@ -321,7 +342,8 @@ class CompoundInterestEngine {
       series: series,
       assumptions: {
         ..._buildAssumptions(input, effectiveMonthlyRate, effectiveAnnualRate),
-        'Calendário': 'Simulação cronológica em datas civis (base 365 dias/ano)',
+        'Calendário':
+            'Simulação cronológica em datas civis (base 365 dias/ano)',
       },
     );
   }
@@ -348,4 +370,3 @@ class CompoundInterestEngine {
     };
   }
 }
-

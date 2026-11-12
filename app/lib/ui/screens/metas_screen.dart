@@ -9,6 +9,7 @@ import '../../domain/models/goal_models.dart';
 import '../../domain/models/rate_input.dart';
 import '../../domain/rules/formatters.dart';
 import '../theme/meta_feita_theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/cards.dart';
 import '../widgets/inputs.dart';
 import '../widgets/meta_feita_buttons.dart';
@@ -50,7 +51,8 @@ class MetasScreen extends StatelessWidget {
               label: 'Preencher meta de exemplo',
               fullWidth: false,
               compact: true,
-              onPressed: () => _openGoalEditor(context, useExampleDefaults: true),
+              onPressed: () =>
+                  _openGoalEditor(context, useExampleDefaults: true),
             ),
           )
         else ...[
@@ -66,6 +68,7 @@ class MetasScreen extends StatelessWidget {
           ],
         ],
         const SizedBox(height: 16),
+        if (focus != null) SafeAdBannerSlot(ads: controller.ads),
         const ProjectionDisclaimer(),
       ],
     );
@@ -73,8 +76,8 @@ class MetasScreen extends StatelessWidget {
 
   Widget _buildFocusDetails(BuildContext context, SavedGoal focus) {
     final eval = GoalsEngine.evaluate(focus.input);
-    final currentRatio =
-        (eval.currentPercentage / Decimal.fromInt(100)).toDouble();
+    final currentRatio = (eval.currentPercentage / Decimal.fromInt(100))
+        .toDouble();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +93,9 @@ class MetasScreen extends StatelessWidget {
                   Flexible(
                     child: Text(
                       'META EM FOCO',
-                      style: MfText.legenda.copyWith(color: MfColors.azulRioClaro),
+                      style: MfText.legenda.copyWith(
+                        color: MfColors.azulRioClaro,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -98,7 +103,9 @@ class MetasScreen extends StatelessWidget {
                     child: Text(
                       'prazo: ${focus.input.termMonths} meses',
                       textAlign: TextAlign.right,
-                      style: MfText.pequeno.copyWith(color: MfColors.nevoaClaro),
+                      style: MfText.pequeno.copyWith(
+                        color: MfColors.nevoaClaro,
+                      ),
                     ),
                   ),
                 ],
@@ -163,7 +170,9 @@ class MetasScreen extends StatelessWidget {
                     child: Text(
                       'Hoje: ${PtBrFormatters.money(focus.input.currentCapital)} '
                       '(${PtBrFormatters.percent(eval.currentPercentage, decimals: 0)})',
-                      style: MfText.pequeno.copyWith(color: MfColors.nevoaClaro),
+                      style: MfText.pequeno.copyWith(
+                        color: MfColors.nevoaClaro,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -249,7 +258,8 @@ class MetasScreen extends StatelessWidget {
                           child: Text(
                             eval.requiredMonthlyContribution != null
                                 ? PtBrFormatters.money(
-                                    eval.requiredMonthlyContribution!)
+                                    eval.requiredMonthlyContribution!,
+                                  )
                                 : 'Indisponível',
                             style: MfText.tituloCartao,
                           ),
@@ -324,9 +334,10 @@ class MetasScreen extends StatelessWidget {
 
   Widget _buildOtherGoalCard(BuildContext context, SavedGoal goal) {
     final pct = goal.input.targetValue > Decimal.zero
-        ? ((goal.input.currentCapital / goal.input.targetValue)
-                .toDecimal(scaleOnInfinitePrecision: 4) *
-            Decimal.fromInt(100))
+        ? ((goal.input.currentCapital / goal.input.targetValue).toDecimal(
+                scaleOnInfinitePrecision: 4,
+              ) *
+              Decimal.fromInt(100))
         : Decimal.zero;
 
     return LightCard(
@@ -336,9 +347,7 @@ class MetasScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(goal.title, style: MfText.tituloCartao),
-              ),
+              Expanded(child: Text(goal.title, style: MfText.tituloCartao)),
               Text(
                 PtBrFormatters.percent(pct, decimals: 0),
                 style: MfText.rotulo,
@@ -359,15 +368,20 @@ class MetasScreen extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              TextButton(
-                onPressed: () => controller.setFocusGoal(goal.id),
-                child: const Text('Definir em foco'),
+              Expanded(
+                child: Wrap(
+                  children: [
+                    TextButton(
+                      onPressed: () => controller.setFocusGoal(goal.id),
+                      child: const Text('Definir em foco'),
+                    ),
+                    TextButton(
+                      onPressed: () => _openGoalEditor(context, existing: goal),
+                      child: const Text('Editar'),
+                    ),
+                  ],
+                ),
               ),
-              TextButton(
-                onPressed: () => _openGoalEditor(context, existing: goal),
-                child: const Text('Editar'),
-              ),
-              const Spacer(),
               IconButton(
                 tooltip: 'Excluir meta',
                 onPressed: () => _confirmDeleteGoal(context, goal),
@@ -384,6 +398,7 @@ class MetasScreen extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Excluir meta?', style: MfText.tituloCartao),
         content: Text(
           'A meta "${goal.title}" será removida deste aparelho.',
@@ -412,7 +427,8 @@ class MetasScreen extends StatelessWidget {
     bool useExampleDefaults = false,
   }) async {
     final titleCtrl = TextEditingController(
-      text: existing?.title ??
+      text:
+          existing?.title ??
           (useExampleDefaults ? 'Reserva de emergência' : ''),
     );
     final targetCtrl = TextEditingController(
@@ -494,10 +510,7 @@ class MetasScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      MoneyInput(
-                        label: 'Valor-alvo',
-                        controller: targetCtrl,
-                      ),
+                      MoneyInput(label: 'Valor-alvo', controller: targetCtrl),
                       const SizedBox(height: 12),
                       MoneyInput(
                         label: 'Capital atual',
@@ -581,14 +594,18 @@ class MetasScreen extends StatelessWidget {
                         label: 'Salvar meta',
                         onPressed: () {
                           final name = titleCtrl.text.trim();
-                          final target =
-                              PtBrFormatters.parseUserDecimal(targetCtrl.text);
-                          final curr =
-                              PtBrFormatters.parseUserDecimal(currentCtrl.text);
-                          final contrib =
-                              PtBrFormatters.parseUserDecimal(contribCtrl.text);
-                          final ratePct =
-                              PtBrFormatters.parseUserDecimal(rateCtrl.text);
+                          final target = PtBrFormatters.parseUserDecimal(
+                            targetCtrl.text,
+                          );
+                          final curr = PtBrFormatters.parseUserDecimal(
+                            currentCtrl.text,
+                          );
+                          final contrib = PtBrFormatters.parseUserDecimal(
+                            contribCtrl.text,
+                          );
+                          final ratePct = PtBrFormatters.parseUserDecimal(
+                            rateCtrl.text,
+                          );
                           final term = int.tryParse(termCtrl.text.trim());
 
                           if (name.isEmpty ||

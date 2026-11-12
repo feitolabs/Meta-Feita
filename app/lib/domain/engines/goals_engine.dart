@@ -74,7 +74,8 @@ class GoalsEngine {
 
     if (zeroContribRes.finalValue >= input.targetValue) {
       requiredContribution = Decimal.zero;
-      solverNote = 'Com a taxa e o capital atuais, você atinge a meta mesmo sem novos aportes.';
+      solverNote =
+          'Com a taxa e o capital atuais, você atinge a meta mesmo sem novos aportes.';
     } else {
       var low = Decimal.zero;
       var high = input.targetValue;
@@ -183,4 +184,3 @@ class GoalsEngine {
     );
   }
 }
-

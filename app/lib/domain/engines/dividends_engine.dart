@@ -27,17 +27,20 @@ class DividendsEngine {
       errors,
     );
     if (!input.fractionalMode && !input.quantity.isInteger) {
-      errors['quantity'] = 'No modo inteiro, a quantidade deve ser um número inteiro.';
+      errors['quantity'] =
+          'No modo inteiro, a quantidade deve ser um número inteiro.';
     }
     if (input.desiredMonthlyIncome != null &&
         input.desiredMonthlyIncome! < Decimal.zero) {
-      errors['desiredMonthlyIncome'] = 'A renda desejada não pode ser negativa.';
+      errors['desiredMonthlyIncome'] =
+          'A renda desejada não pode ser negativa.';
     }
     InputValidators.throwIfErrors(errors);
 
     final growth = input.optionalAnnualGrowthRate ?? Decimal.zero;
-    final eventDividend =
-        DecimalMath.moneyRound(input.quantity * input.dividendPerUnit);
+    final eventDividend = DecimalMath.moneyRound(
+      input.quantity * input.dividendPerUnit,
+    );
 
     final monthsNames = const [
       'Mês 1',
@@ -137,8 +140,9 @@ class DividendsEngine {
             ? rawQty.ceil(scale: 6)
             : rawQty.ceil();
         if (input.unitPrice > Decimal.zero) {
-          estimatedCapital =
-              DecimalMath.moneyRound(requiredQuantity * input.unitPrice);
+          estimatedCapital = DecimalMath.moneyRound(
+            requiredQuantity * input.unitPrice,
+          );
         }
       }
     }
@@ -154,8 +158,9 @@ class DividendsEngine {
       calendar12Months: calendar,
       assumptions: {
         'Frequência': input.frequency.labelPt,
-        'Modo de cotas':
-            input.fractionalMode ? 'Fracionário (hipotético)' : 'Inteiro',
+        'Modo de cotas': input.fractionalMode
+            ? 'Fracionário (hipotético)'
+            : 'Inteiro',
         'Crescimento': growth == Decimal.zero
             ? '0% (sem crescimento presumido)'
             : '${growth.shift(2)}% ao ano',
@@ -165,4 +170,3 @@ class DividendsEngine {
     );
   }
 }
-

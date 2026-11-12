@@ -16,7 +16,7 @@ enum _HistoricoFilter { todas, juros, dividendos, metas, outras }
 class HistoricoScreen extends StatefulWidget {
   final AppController controller;
   final void Function(AppRoute route, {SavedSimulation? openSimulation})
-      onNavigate;
+  onNavigate;
   final VoidCallback? onBack;
 
   const HistoricoScreen({
@@ -108,8 +108,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 : null,
             filled: true,
             fillColor: MfColors.areiaCard,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: MfColors.border),
@@ -186,8 +188,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     label: 'Ir para Juros compostos',
                     fullWidth: false,
                     compact: true,
-                    onPressed: () =>
-                        widget.onNavigate(AppRoute.jurosCompostos),
+                    onPressed: () => widget.onNavigate(AppRoute.jurosCompostos),
                   )
                 : null,
           )
@@ -280,9 +281,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       showCheckmark: false,
       backgroundColor: MfColors.areiaCard,
       selectedColor: MfColors.petroleo,
-      side: BorderSide(
-        color: selected ? MfColors.petroleo : MfColors.border,
-      ),
+      side: BorderSide(color: selected ? MfColors.petroleo : MfColors.border),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       onSelected: (_) => setState(() => _filter = value),
     );
@@ -293,6 +292,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     final action = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Editar simulação', style: MfText.tituloCartao),
         content: TextField(
           controller: ctrl,
@@ -334,6 +334,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Excluir simulação?', style: MfText.tituloCartao),
         content: Text(
           'A simulação "${sim.title}" será removida apenas deste aparelho.',
@@ -375,7 +376,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Arquivo JSON de backup pronto para salvar ou enviar.'),
+            content: Text(
+              'Arquivo JSON de backup pronto para salvar ou enviar.',
+            ),
           ),
         );
       }
@@ -391,6 +394,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Exportar backup (JSON)', style: MfText.tituloCartao),
         content: SizedBox(
           width: 500,
@@ -405,7 +409,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
               Clipboard.setData(ClipboardData(text: json));
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('JSON copiado para a área de transferência.')),
+                const SnackBar(
+                  content: Text('JSON copiado para a área de transferência.'),
+                ),
               );
             },
             child: const Text('Copiar JSON'),
@@ -427,9 +433,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       await _confirmAndApplyBackup(payload);
     } on BackupValidationException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       final pasted = await _promptPasteJsonFallback();
@@ -448,6 +454,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
+          scrollable: true,
           title: Text('Colar JSON de backup', style: MfText.tituloCartao),
           content: SizedBox(
             width: 460,
@@ -458,7 +465,8 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   controller: ctrl,
                   maxLines: 6,
                   decoration: const InputDecoration(
-                    hintText: 'Cole aqui o conteúdo do arquivo meta-feita-backup.json',
+                    hintText:
+                        'Cole aqui o conteúdo do arquivo meta-feita-backup.json',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -480,8 +488,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             ElevatedButton(
               onPressed: () {
                 try {
-                  final payload =
-                      BackupValidator.parseAndValidate(ctrl.text.trim());
+                  final payload = BackupValidator.parseAndValidate(
+                    ctrl.text.trim(),
+                  );
                   Navigator.of(ctx).pop(payload);
                 } catch (err) {
                   setDialogState(() => errorMsg = err.toString());
@@ -499,6 +508,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     final choice = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Confirmar restauração', style: MfText.tituloCartao),
         content: Text(
           'Arquivo validado (versão ${payload.schemaVersion}):\n'
@@ -525,25 +535,22 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     );
 
     if (!mounted || choice == null) return;
-    widget.controller.applyBackup(
-      payload,
-      replaceAll: choice == 'replace',
-    );
+    widget.controller.applyBackup(payload, replaceAll: choice == 'replace');
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Backup restaurado com sucesso.')),
     );
   }
 
   AppRoute _routeForType(SimulationType type) => switch (type) {
-        SimulationType.compoundInterest => AppRoute.jurosCompostos,
-        SimulationType.dividends => AppRoute.dividendos,
-        SimulationType.reinvestment => AppRoute.reinvestimento,
-        SimulationType.goal => AppRoute.metas,
-        SimulationType.comparator => AppRoute.comparador,
-        SimulationType.inflation => AppRoute.inflacao,
-        SimulationType.withdrawal => AppRoute.retirada,
-        SimulationType.retirement => AppRoute.aposentadoria,
-      };
+    SimulationType.compoundInterest => AppRoute.jurosCompostos,
+    SimulationType.dividends => AppRoute.dividendos,
+    SimulationType.reinvestment => AppRoute.reinvestimento,
+    SimulationType.goal => AppRoute.metas,
+    SimulationType.comparator => AppRoute.comparador,
+    SimulationType.inflation => AppRoute.inflacao,
+    SimulationType.withdrawal => AppRoute.retirada,
+    SimulationType.retirement => AppRoute.aposentadoria,
+  };
 }
 
 class _HistoricoCard extends StatelessWidget {
@@ -609,4 +616,3 @@ class _HistoricoCard extends StatelessWidget {
     );
   }
 }
-

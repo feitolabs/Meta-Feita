@@ -50,11 +50,7 @@ class ReinvestmentEngine {
       errors['reinvestmentPercent'] =
           'O percentual de reinvestimento deve estar entre 0% e 100%.';
     }
-    InputValidators.validateTermMonths(
-      input.termMonths,
-      'termMonths',
-      errors,
-    );
+    InputValidators.validateTermMonths(input.termMonths, 'termMonths', errors);
     if (input.quantityMode == QuantityMode.integer &&
         !input.initialQuantity.isInteger) {
       errors['initialQuantity'] =
@@ -65,8 +61,10 @@ class ReinvestmentEngine {
     final fraction = switch (input.reinvestmentMode) {
       ReinvestmentMode.full => Decimal.one,
       ReinvestmentMode.none => Decimal.zero,
-      ReinvestmentMode.percentage =>
-        DecimalMath.div(input.reinvestmentPercent, DecimalMath.hundred),
+      ReinvestmentMode.percentage => DecimalMath.div(
+        input.reinvestmentPercent,
+        DecimalMath.hundred,
+      ),
     };
 
     final paymentStep = switch (input.frequency) {
@@ -87,7 +85,8 @@ class ReinvestmentEngine {
     final series = <ReinvestmentPeriodPoint>[];
 
     for (var m = 1; m <= input.termMonths; m++) {
-      final price = (m - 1) < input.customPriceSeries.length &&
+      final price =
+          (m - 1) < input.customPriceSeries.length &&
               input.customPriceSeries[m - 1] > Decimal.zero
           ? input.customPriceSeries[m - 1]
           : input.initialPrice;
@@ -117,15 +116,19 @@ class ReinvestmentEngine {
           final rawUnits = DecimalMath.div(netBudget, price).floor();
           if (rawUnits > Decimal.zero) {
             bought = rawUnits;
-            spent = DecimalMath.moneyRound(bought * price) +
+            spent =
+                DecimalMath.moneyRound(bought * price) +
                 input.explicitCostPerPurchase;
           }
         } else {
-          final rawUnits = DecimalMath.div(netBudget, price)
-              .floor(scale: input.fractionalScale);
+          final rawUnits = DecimalMath.div(
+            netBudget,
+            price,
+          ).floor(scale: input.fractionalScale);
           if (rawUnits > Decimal.zero) {
             bought = rawUnits;
-            spent = DecimalMath.moneyRound(bought * price) +
+            spent =
+                DecimalMath.moneyRound(bought * price) +
                 input.explicitCostPerPurchase;
           }
         }
@@ -139,11 +142,10 @@ class ReinvestmentEngine {
       totalBought += bought;
       cash = DecimalMath.moneyRound(cash - spent);
 
-      final residualOfReinvest = DecimalMath.moneyRound(budget - spent < Decimal.zero
-          ? Decimal.zero
-          : budget - spent);
-      final estimatedPosition =
-          DecimalMath.moneyRound(quantity * price + cash);
+      final residualOfReinvest = DecimalMath.moneyRound(
+        budget - spent < Decimal.zero ? Decimal.zero : budget - spent,
+      );
+      final estimatedPosition = DecimalMath.moneyRound(quantity * price + cash);
 
       series.add(
         ReinvestmentPeriodPoint(
@@ -161,8 +163,7 @@ class ReinvestmentEngine {
     }
 
     final finalResidual = series.isEmpty ? cash : series.last.totalCash;
-    final finalPos =
-        DecimalMath.moneyRound(quantity * lastPrice + cash);
+    final finalPos = DecimalMath.moneyRound(quantity * lastPrice + cash);
 
     return ReinvestmentResult(
       finalQuantity: quantity,
@@ -189,4 +190,3 @@ class ReinvestmentEngine {
     );
   }
 }
-

@@ -33,15 +33,15 @@ class CreditPackage {
   }
 
   Map<String, dynamic> toJson() => {
-        'productId': productId,
-        'credits': credits,
-        'title': title,
-        'subtitle': subtitle,
-        'priceCents': priceCents,
-        'displayPrice': displayPrice,
-        'highlighted': highlighted,
-        'playProductId': playProductId,
-      };
+    'productId': productId,
+    'credits': credits,
+    'title': title,
+    'subtitle': subtitle,
+    'priceCents': priceCents,
+    'displayPrice': displayPrice,
+    'highlighted': highlighted,
+    'playProductId': playProductId,
+  };
 }
 
 class CreditFeatureCost {
@@ -67,11 +67,11 @@ class CreditFeatureCost {
   }
 
   Map<String, dynamic> toJson() => {
-        'featureId': featureId,
-        'title': title,
-        'description': description,
-        'creditCost': creditCost,
-      };
+    'featureId': featureId,
+    'title': title,
+    'description': description,
+    'creditCost': creditCost,
+  };
 }
 
 class RewardedAdConfig {
@@ -94,10 +94,10 @@ class RewardedAdConfig {
   }
 
   Map<String, dynamic> toJson() => {
-        'creditsPerView': creditsPerView,
-        'dailyLimit': dailyLimit,
-        'enabled': enabled,
-      };
+    'creditsPerView': creditsPerView,
+    'dailyLimit': dailyLimit,
+    'enabled': enabled,
+  };
 }
 
 class CreditCatalog {
@@ -132,18 +132,19 @@ class CreditCatalog {
       features: (json['features'] as List<dynamic>)
           .map((e) => CreditFeatureCost.fromJson(e as Map<String, dynamic>))
           .toList(),
-      rewardedAd:
-          RewardedAdConfig.fromJson(json['rewardedAd'] as Map<String, dynamic>),
+      rewardedAd: RewardedAdConfig.fromJson(
+        json['rewardedAd'] as Map<String, dynamic>,
+      ),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'catalogVersion': catalogVersion,
-        'currency': currency,
-        'packages': packages.map((e) => e.toJson()).toList(),
-        'features': features.map((e) => e.toJson()).toList(),
-        'rewardedAd': rewardedAd.toJson(),
-      };
+    'catalogVersion': catalogVersion,
+    'currency': currency,
+    'packages': packages.map((e) => e.toJson()).toList(),
+    'features': features.map((e) => e.toJson()).toList(),
+    'rewardedAd': rewardedAd.toJson(),
+  };
 }
 
 enum CreditBalanceStatus { confirmed, cachedOffline, uninitialized }
@@ -166,12 +167,12 @@ class LocalCreditCache {
   });
 
   Map<String, dynamic> toJson() => {
-        'walletReference': walletReference,
-        'cachedBalance': cachedBalance,
-        'lastValidatedAt': lastValidatedAt?.toIso8601String(),
-        'status': status.name,
-        'cacheVersion': cacheVersion,
-      };
+    'walletReference': walletReference,
+    'cachedBalance': cachedBalance,
+    'lastValidatedAt': lastValidatedAt?.toIso8601String(),
+    'status': status.name,
+    'cacheVersion': cacheVersion,
+  };
 
   factory LocalCreditCache.fromJson(Map<String, dynamic> json) {
     return LocalCreditCache(
@@ -259,12 +260,12 @@ class PreferenceModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'theme': theme,
-        'currency': currency,
-        'locale': locale,
-        'onboardingCompleted': onboardingCompleted,
-        'autoSaveSimulations': autoSaveSimulations,
-      };
+    'theme': theme,
+    'currency': currency,
+    'locale': locale,
+    'onboardingCompleted': onboardingCompleted,
+    'autoSaveSimulations': autoSaveSimulations,
+  };
 
   factory PreferenceModel.fromJson(Map<String, dynamic> json) {
     return PreferenceModel(
@@ -276,4 +277,3 @@ class PreferenceModel {
     );
   }
 }
-

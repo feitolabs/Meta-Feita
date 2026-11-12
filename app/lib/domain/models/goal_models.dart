@@ -23,24 +23,28 @@ class GoalInput {
   });
 
   Map<String, dynamic> toJson() => {
-        'targetValue': targetValue.toString(),
-        'currentCapital': currentCapital.toString(),
-        'periodicContribution': periodicContribution.toString(),
-        'contributionFrequency': contributionFrequency.name,
-        'contributionTiming': contributionTiming.name,
-        'rate': rate.toJson(),
-        'termMonths': termMonths,
-      };
+    'targetValue': targetValue.toString(),
+    'currentCapital': currentCapital.toString(),
+    'periodicContribution': periodicContribution.toString(),
+    'contributionFrequency': contributionFrequency.name,
+    'contributionTiming': contributionTiming.name,
+    'rate': rate.toJson(),
+    'termMonths': termMonths,
+  };
 
   factory GoalInput.fromJson(Map<String, dynamic> json) {
     return GoalInput(
       targetValue: Decimal.parse(json['targetValue'] as String),
       currentCapital: Decimal.parse(json['currentCapital'] as String),
-      periodicContribution: Decimal.parse(json['periodicContribution'] as String),
-      contributionFrequency: ContributionFrequency.values
-          .byName(json['contributionFrequency'] as String),
-      contributionTiming:
-          ContributionTiming.values.byName(json['contributionTiming'] as String),
+      periodicContribution: Decimal.parse(
+        json['periodicContribution'] as String,
+      ),
+      contributionFrequency: ContributionFrequency.values.byName(
+        json['contributionFrequency'] as String,
+      ),
+      contributionTiming: ContributionTiming.values.byName(
+        json['contributionTiming'] as String,
+      ),
       rate: RateInput.fromJson(json['rate'] as Map<String, dynamic>),
       termMonths: json['termMonths'] as int,
     );
@@ -114,21 +118,23 @@ class SavedGoal {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'targetValue': input.targetValue.toString(),
-        'initialValue': input.currentCapital.toString(),
-        'contribution': input.periodicContribution.toString(),
-        'targetDate': targetDate.toIso(),
-        'assumptions': input.toJson(),
-        'isFocus': isFocus,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-        'schemaVersion': schemaVersion,
-      };
+    'id': id,
+    'title': title,
+    'targetValue': input.targetValue.toString(),
+    'initialValue': input.currentCapital.toString(),
+    'contribution': input.periodicContribution.toString(),
+    'targetDate': targetDate.toIso(),
+    'assumptions': input.toJson(),
+    'isFocus': isFocus,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'schemaVersion': schemaVersion,
+  };
 
   factory SavedGoal.fromJson(Map<String, dynamic> json) {
-    final assumptionsMap = Map<String, dynamic>.from(json['assumptions'] as Map);
+    final assumptionsMap = Map<String, dynamic>.from(
+      json['assumptions'] as Map,
+    );
     return SavedGoal(
       id: json['id'] as String,
       title: json['title'] as String,
@@ -142,4 +148,3 @@ class SavedGoal {
     );
   }
 }
-

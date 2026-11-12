@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 import uuid
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from ..config import Settings
-from ..database import Database
+from ..database import AnyDatabase
 from ..models import (
     CatalogResponse,
+    LedgerStatus,
     CreditFeatureCost,
     CreditOperationResponse,
     CreditPackage,
@@ -25,6 +27,26 @@ from ..models import (
     WebWebhookEvent,
 )
 from ..security import generate_recovery_code, verify_recovery_code, verify_webhook_signature
+from .play_verifier import (
+    PURCHASE_STATE_CANCELLED,
+    PURCHASE_STATE_PENDING,
+    PURCHASE_STATE_PURCHASED,
+    PlayVerifier,
+    PlayVerifierError,
+    VoidedPurchase,
+)
+
+
+# Só nestes ambientes o app pode creditar anúncio sem assinatura do AdMob (blocos de teste).
+UNVERIFIED_REWARDS_ENVS = ("development", "test")
+STALE_RESERVATION_MINUTES = 30
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _is_clean_identifier(value: str, allow_empty: bool = False) -> bool:
+    if not value:
+        return allow_empty
+    return len(value) <= 128 and _CONTROL_CHARS.search(value) is None
 
 
 class DomainError(Exception):
@@ -39,7 +61,7 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def _row_to_ledger(row: sqlite3.Row) -> LedgerEntry:
+def _row_to_ledger(row: Any) -> LedgerEntry:
     return LedgerEntry(
         transactionId=row["transaction_id"],
         walletReference=row["wallet_reference"],
@@ -56,13 +78,15 @@ def _row_to_ledger(row: sqlite3.Row) -> LedgerEntry:
 class CreditService:
     def __init__(
         self,
-        db: Database,
+        db: AnyDatabase,
         catalog: CatalogResponse,
         settings: Settings,
+        play_verifier: PlayVerifier | None = None,
     ) -> None:
         self.db = db
         self.catalog = catalog
         self.settings = settings
+        self.play_verifier = play_verifier
 
     def _get_package(self, product_id: str) -> CreditPackage:
         for pkg in self.catalog.packages:
@@ -76,9 +100,15 @@ class CreditService:
                 return feature
         raise DomainError("FEATURE_NOT_FOUND", f"Recurso '{feature_id}' não encontrado no catálogo.", 404)
 
-    def _require_wallet(self, conn: sqlite3.Connection, wallet_reference: str) -> sqlite3.Row:
+    def _require_wallet(
+        self,
+        conn: Any,
+        wallet_reference: str,
+        lock: bool = True,
+    ) -> Any:
+        clause = self.db.wallet_lock_clause if lock else ""
         row = conn.execute(
-            "SELECT * FROM wallets WHERE wallet_reference = ?",
+            f"SELECT * FROM wallets WHERE wallet_reference = ?{clause}",
             (wallet_reference,),
         ).fetchone()
         if row is None:
@@ -108,7 +138,7 @@ class CreditService:
 
     def recover_wallet(self, wallet_reference: str, recovery_code: str) -> WalletBalanceResponse:
         with self.db.read() as conn:
-            wallet = self._require_wallet(conn, wallet_reference)
+            wallet = self._require_wallet(conn, wallet_reference, lock=False)
             if not verify_recovery_code(
                 recovery_code, wallet["recovery_salt"], wallet["recovery_code_hash"]
             ):
@@ -126,7 +156,7 @@ class CreditService:
 
     def get_balance(self, wallet_reference: str) -> WalletBalanceResponse:
         with self.db.read() as conn:
-            wallet = self._require_wallet(conn, wallet_reference)
+            wallet = self._require_wallet(conn, wallet_reference, lock=False)
             return WalletBalanceResponse(
                 walletReference=wallet["wallet_reference"],
                 balance=wallet["balance"],
@@ -136,12 +166,12 @@ class CreditService:
 
     def list_transactions(self, wallet_reference: str, limit: int = 50) -> TransactionsResponse:
         with self.db.read() as conn:
-            wallet = self._require_wallet(conn, wallet_reference)
+            wallet = self._require_wallet(conn, wallet_reference, lock=False)
             rows = conn.execute(
-                """
+                f"""
                 SELECT * FROM credit_ledger
                 WHERE wallet_reference = ?
-                ORDER BY created_at DESC, rowid DESC
+                ORDER BY created_at DESC, {self.db.ledger_tiebreak_column} DESC
                 LIMIT ?
                 """,
                 (wallet_reference, max(1, min(limit, 200))),
@@ -345,6 +375,13 @@ class CreditService:
                     balance=wallet["balance"],
                 )
 
+            if res["status"] == "confirmed":
+                raise DomainError(
+                    "RESERVATION_ALREADY_CONFIRMED",
+                    "Reserva já confirmada: o recurso foi usado e não pode ser estornado.",
+                    409,
+                )
+
             new_balance = wallet["balance"] + res["amount"]
             refund_tx_id = f"tx_{uuid.uuid4().hex}"
             conn.execute(
@@ -521,7 +558,19 @@ class CreditService:
                         balance=wallet["balance"],
                         idempotentReplay=True,
                     )
-                deduct = min(wallet["balance"], pkg.credits)
+                granted_row = conn.execute(
+                    """
+                    SELECT * FROM credit_ledger
+                    WHERE wallet_reference = ? AND source = 'web_purchase'
+                      AND provider_transaction_id = ? AND status = 'granted'
+                    """,
+                    (wallet["wallet_reference"], event.providerTransactionId),
+                ).fetchone()
+                deduct = (
+                    min(wallet["balance"], granted_row["credit_delta"])
+                    if granted_row is not None
+                    else 0
+                )
                 new_balance = wallet["balance"] - deduct
                 tx_id = f"tx_{uuid.uuid4().hex}"
                 conn.execute(
@@ -596,6 +645,43 @@ class CreditService:
                 idempotentReplay=False,
             )
 
+    def _resolve_play_state(self, req: PlayPurchaseValidateRequest, pkg: CreditPackage) -> str:
+        """Em modo google_play o estado vem do Google; o informado pelo app é ignorado."""
+        if self.settings.play_validation_mode != "google_play":
+            return req.purchaseState
+
+        verifier = self.play_verifier
+        if verifier is None:
+            raise DomainError(
+                "PLAY_CREDENTIALS_MISSING",
+                "Credenciais de conta de serviço Google Play ausentes no ambiente.",
+                503,
+            )
+        try:
+            purchase = verifier.get_product_purchase(pkg.playProductId, req.purchaseToken)
+        except PlayVerifierError as exc:
+            raise DomainError(
+                "PLAY_VALIDATION_UNAVAILABLE",
+                "Não foi possível confirmar a compra no Google Play agora. Tente novamente.",
+                503,
+            ) from exc
+
+        if purchase is None:
+            raise DomainError("PLAY_PURCHASE_INVALID", "Compra não reconhecida pelo Google Play.", 400)
+        if (
+            purchase.obfuscated_account_id
+            and purchase.obfuscated_account_id != req.walletReference
+        ):
+            raise DomainError("PLAY_WALLET_MISMATCH", "Esta compra pertence a outra carteira.", 409)
+
+        if purchase.purchase_state == PURCHASE_STATE_PURCHASED:
+            return "purchased"
+        if purchase.purchase_state == PURCHASE_STATE_PENDING:
+            return "pending"
+        if purchase.purchase_state == PURCHASE_STATE_CANCELLED:
+            return "revoked"
+        raise DomainError("PLAY_PURCHASE_INVALID", "Estado de compra desconhecido.", 400)
+
     def validate_play_purchase(
         self, req: PlayPurchaseValidateRequest
     ) -> PlayPurchaseValidateResponse:
@@ -606,7 +692,14 @@ class CreditService:
                 503,
             )
 
-        if self.settings.play_validation_mode == "google_play" and not self.settings.google_application_credentials:
+        if self.settings.play_validation_mode == "sandbox" and self.settings.env == "production":
+            raise DomainError(
+                "PLAY_SANDBOX_FORBIDDEN",
+                "Validação sandbox não é permitida em produção.",
+                503,
+            )
+
+        if self.settings.play_validation_mode == "google_play" and self.play_verifier is None:
             raise DomainError(
                 "PLAY_CREDENTIALS_MISSING",
                 "Credenciais de conta de serviço Google Play ausentes no ambiente.",
@@ -614,11 +707,12 @@ class CreditService:
             )
 
         pkg = self._get_package(req.productId)
+        purchase_state = self._resolve_play_state(req, pkg)
         now = _utc_now_iso()
         with self.db.transaction() as conn:
             wallet = self._require_wallet(conn, req.walletReference)
 
-            if req.purchaseState in ("purchased", "restored"):
+            if purchase_state in ("purchased", "restored"):
                 existing_token = conn.execute(
                     """
                     SELECT * FROM credit_ledger
@@ -684,7 +778,7 @@ class CreditService:
                     idempotentReplay=False,
                 )
 
-            if req.purchaseState in ("refunded", "revoked"):
+            if purchase_state in ("refunded", "revoked"):
                 rev_key = f"play_revoked:{req.purchaseToken}"
                 existing_rev = conn.execute(
                     """
@@ -705,11 +799,14 @@ class CreditService:
                 granted = conn.execute(
                     """
                     SELECT * FROM credit_ledger
-                    WHERE source = 'play_purchase' AND provider_transaction_id = ? AND status = 'granted'
+                    WHERE wallet_reference = ? AND source = 'play_purchase'
+                      AND provider_transaction_id = ? AND status = 'granted'
                     """,
-                    (req.purchaseToken,),
+                    (req.walletReference, req.purchaseToken),
                 ).fetchone()
-                deduct = min(wallet["balance"], pkg.credits) if granted is not None else 0
+                deduct = (
+                    min(wallet["balance"], granted["credit_delta"]) if granted is not None else 0
+                )
                 new_balance = wallet["balance"] - deduct
                 tx_id = f"tx_{uuid.uuid4().hex}"
                 conn.execute(
@@ -744,7 +841,7 @@ class CreditService:
                 )
 
             # pending / cancelled / rejected
-            state_key = f"play_state:{req.idempotencyKey}:{req.purchaseState}"
+            state_key = f"play_state:{req.idempotencyKey}:{purchase_state}"
             existing_state = conn.execute(
                 """
                 SELECT * FROM credit_ledger
@@ -761,7 +858,7 @@ class CreditService:
                     idempotentReplay=True,
                 )
 
-            ledger_status = "pending" if req.purchaseState == "pending" else "rejected"
+            ledger_status: LedgerStatus = "pending" if purchase_state == "pending" else "rejected"
             tx_id = f"tx_{uuid.uuid4().hex}"
             conn.execute(
                 """
@@ -782,6 +879,66 @@ class CreditService:
                 idempotentReplay=False,
             )
 
+    def revoke_voided_play_purchases(self, voided: list[VoidedPurchase]) -> int:
+        """Retira os créditos de compras que o Google anulou (reembolso ou estorno).
+
+        Idempotente: cada token é revertido uma única vez. O saldo nunca fica negativo;
+        se a pessoa já gastou os créditos, retira-se apenas o que resta.
+        """
+        revoked = 0
+        for item in voided:
+            with self.db.transaction() as conn:
+                grant = conn.execute(
+                    """
+                    SELECT * FROM credit_ledger
+                    WHERE source = 'play_purchase'
+                      AND provider_transaction_id = ?
+                      AND status = 'granted'
+                    """,
+                    (item.purchase_token,),
+                ).fetchone()
+                if grant is None:
+                    continue
+
+                wallet = self._require_wallet(conn, grant["wallet_reference"])
+                rev_key = f"play_revoked:{item.purchase_token}"
+                already = conn.execute(
+                    """
+                    SELECT 1 FROM credit_ledger
+                    WHERE wallet_reference = ? AND idempotency_key = ?
+                    """,
+                    (wallet["wallet_reference"], rev_key),
+                ).fetchone()
+                if already is not None:
+                    continue
+
+                now = _utc_now_iso()
+                deduct = min(wallet["balance"], grant["credit_delta"])
+                conn.execute(
+                    "UPDATE wallets SET balance = ?, updated_at = ? WHERE wallet_reference = ?",
+                    (wallet["balance"] - deduct, now, wallet["wallet_reference"]),
+                )
+                conn.execute(
+                    """
+                    INSERT INTO credit_ledger (
+                        transaction_id, wallet_reference, source, product_id,
+                        credit_delta, provider_transaction_id, status,
+                        created_at, idempotency_key, reservation_id
+                    ) VALUES (?, ?, 'refund', ?, ?, ?, 'reversed', ?, ?, NULL)
+                    """,
+                    (
+                        f"tx_{uuid.uuid4().hex}",
+                        wallet["wallet_reference"],
+                        grant["product_id"],
+                        -deduct,
+                        f"revoked:{item.purchase_token}",
+                        now,
+                        rev_key,
+                    ),
+                )
+                revoked += 1
+        return revoked
+
     def claim_rewarded_ad(self, req: RewardedAdClaimRequest) -> CreditOperationResponse:
         if not self.catalog.rewardedAd.enabled or self.catalog.rewardedAd.creditsPerView <= 0:
             raise DomainError("REWARDED_AD_DISABLED", "Recompensa por anúncio desativada.", 503)
@@ -790,18 +947,76 @@ class CreditService:
             payload = f"{req.walletReference}:{req.providerTransactionId}".encode("utf-8")
             if not verify_webhook_signature(payload, req.signature, self.settings.admob_ssv_secret):
                 raise DomainError("INVALID_AD_SIGNATURE", "Assinatura de recompensa de anúncio inválida.", 401)
-        elif self.settings.env == "production":
+        elif self.settings.env not in UNVERIFIED_REWARDS_ENVS:
             raise DomainError(
                 "AD_VERIFICATION_NOT_CONFIGURED",
-                "Verificação server-side de anúncios não configurada em produção.",
+                "Verificação server-side de anúncios não configurada neste ambiente.",
                 503,
             )
 
+        return self._grant_rewarded_ad(
+            wallet_reference=req.walletReference,
+            provider_transaction_id=req.providerTransactionId,
+            idempotency_key=req.idempotencyKey,
+            ad_network=req.adNetwork,
+        )
+
+    def process_admob_ssv(self, params: dict[str, str]) -> dict[str, str]:
+        """Concede a recompensa de um callback SSV cuja assinatura já foi validada.
+
+        Só falha com erro quando o callback não deve ser aceito. Carteira desconhecida
+        ou limite diário respondem 200, senão o AdMob reenviaria o mesmo evento.
+        """
+        allowed_units = self.settings.admob_rewarded_ad_unit_set
+        if not allowed_units and self.settings.env not in UNVERIFIED_REWARDS_ENVS:
+            raise DomainError(
+                "AD_VERIFICATION_NOT_CONFIGURED",
+                "Blocos de anúncio premiado não configurados neste ambiente.",
+                503,
+            )
+        # Qualquer conta AdMob pode apontar callbacks assinados para esta URL.
+        if allowed_units and params.get("ad_unit", "") not in allowed_units:
+            raise DomainError("AD_UNIT_NOT_ALLOWED", "Bloco de anúncio não autorizado.", 403)
+
+        if not self.catalog.rewardedAd.enabled or self.catalog.rewardedAd.creditsPerView <= 0:
+            return {"status": "ignored", "reason": "disabled"}
+
+        transaction_id = params.get("transaction_id", "")
+        wallet_reference = params.get("user_id", "")
+        custom_data = params.get("custom_data", "")
+        # user_id e custom_data são definidos pelo app: não confiar no formato.
+        if not (
+            _is_clean_identifier(transaction_id)
+            and _is_clean_identifier(wallet_reference)
+            and _is_clean_identifier(custom_data, allow_empty=True)
+        ):
+            return {"status": "ignored", "reason": "invalid_fields"}
+
+        try:
+            self._grant_rewarded_ad(
+                wallet_reference=wallet_reference,
+                provider_transaction_id=transaction_id,
+                idempotency_key=custom_data or f"ssv:{transaction_id}",
+                ad_network="admob",
+            )
+        except DomainError as exc:
+            if exc.code in ("WALLET_NOT_FOUND", "REWARDED_AD_DAILY_LIMIT"):
+                return {"status": "ignored", "reason": exc.code}
+            raise
+        return {"status": "granted"}
+
+    def _grant_rewarded_ad(
+        self,
+        wallet_reference: str,
+        provider_transaction_id: str,
+        idempotency_key: str,
+        ad_network: str,
+    ) -> CreditOperationResponse:
         now = _utc_now_iso()
         today_prefix = now[:10]
         grant = self.catalog.rewardedAd.creditsPerView
         with self.db.transaction() as conn:
-            wallet = self._require_wallet(conn, req.walletReference)
+            wallet = self._require_wallet(conn, wallet_reference)
 
             existing = conn.execute(
                 """
@@ -809,7 +1024,7 @@ class CreditService:
                 WHERE (source = 'rewarded_ad' AND provider_transaction_id = ?)
                    OR (wallet_reference = ? AND idempotency_key = ?)
                 """,
-                (req.providerTransactionId, req.walletReference, req.idempotencyKey),
+                (provider_transaction_id, wallet_reference, idempotency_key),
             ).fetchone()
             if existing is not None:
                 return CreditOperationResponse(
@@ -826,7 +1041,7 @@ class CreditService:
                   AND status = 'granted'
                   AND substr(created_at, 1, 10) = ?
                 """,
-                (req.walletReference, today_prefix),
+                (wallet_reference, today_prefix),
             ).fetchone()["cnt"]
             if daily_count >= self.catalog.rewardedAd.dailyLimit:
                 raise DomainError(
@@ -839,7 +1054,7 @@ class CreditService:
             tx_id = f"tx_{uuid.uuid4().hex}"
             conn.execute(
                 "UPDATE wallets SET balance = ?, updated_at = ? WHERE wallet_reference = ?",
-                (new_balance, now, req.walletReference),
+                (new_balance, now, wallet_reference),
             )
             conn.execute(
                 """
@@ -851,12 +1066,12 @@ class CreditService:
                 """,
                 (
                     tx_id,
-                    req.walletReference,
-                    req.adNetwork,
+                    wallet_reference,
+                    ad_network,
                     grant,
-                    req.providerTransactionId,
+                    provider_transaction_id,
                     now,
-                    req.idempotencyKey,
+                    idempotency_key,
                 ),
             )
             row = conn.execute("SELECT * FROM credit_ledger WHERE transaction_id = ?", (tx_id,)).fetchone()
@@ -865,6 +1080,50 @@ class CreditService:
                 balance=new_balance,
                 idempotentReplay=False,
             )
+
+    def refund_stale_reservations(self, max_age_minutes: int = STALE_RESERVATION_MINUTES) -> int:
+        """Devolve créditos de reservas que ficaram pendentes (app fechado no meio do uso)."""
+        cutoff = (
+            (datetime.now(timezone.utc) - timedelta(minutes=max_age_minutes))
+            .replace(microsecond=0)
+            .isoformat()
+        )
+        with self.db.read() as conn:
+            stale = conn.execute(
+                "SELECT reservation_id, wallet_reference FROM reservations "
+                "WHERE status = 'pending' AND created_at < ?",
+                (cutoff,),
+            ).fetchall()
+
+        refunded = 0
+        for row in stale:
+            try:
+                self.refund_reservation(row["wallet_reference"], row["reservation_id"], "stale-sweep")
+            except DomainError:
+                # Confirmada ou estornada por outro caminho enquanto a lista era montada.
+                continue
+            refunded += 1
+        return refunded
+
+    def delete_wallet(self, wallet_reference: str, apply: bool) -> dict[str, int]:
+        """Apaga a carteira e o extrato (pedido de exclusão de dados). Sem apply, só conta."""
+        tables = ("reservations", "web_checkouts", "credit_ledger", "wallets")
+        with self.db.transaction() as conn:
+            self._require_wallet(conn, wallet_reference)
+            counts: dict[str, int] = {}
+            for table in tables:
+                row = conn.execute(
+                    f"SELECT COUNT(*) AS n FROM {table} WHERE wallet_reference = ?",  # noqa: S608
+                    (wallet_reference,),
+                ).fetchone()
+                counts[table] = row["n"]
+            if apply:
+                for table in tables:
+                    conn.execute(
+                        f"DELETE FROM {table} WHERE wallet_reference = ?",  # noqa: S608
+                        (wallet_reference,),
+                    )
+            return counts
 
     def record_telemetry(self, event: TelemetryEventRequest) -> dict[str, str]:
         event_id = f"evt_{uuid.uuid4().hex}"

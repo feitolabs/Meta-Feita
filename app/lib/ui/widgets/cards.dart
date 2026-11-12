@@ -23,10 +23,7 @@ class LightCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(20),
-      side: BorderSide(
-        color: borderColor ?? MfColors.border,
-        width: 1.1,
-      ),
+      side: BorderSide(color: borderColor ?? MfColors.border, width: 1.1),
     );
     final paddedChild = Padding(padding: padding, child: child);
 
@@ -36,11 +33,7 @@ class LightCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: onTap == null
           ? paddedChild
-          : InkWell(
-              onTap: onTap,
-              customBorder: shape,
-              child: paddedChild,
-            ),
+          : InkWell(onTap: onTap, customBorder: shape, child: paddedChild),
     );
   }
 }
@@ -235,21 +228,14 @@ class EmptyStateCard extends StatelessWidget {
             child: MetaFeitaIcon(icon, size: 26, color: MfColors.petroleo),
           ),
           const SizedBox(height: 14),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: MfText.tituloCartao,
-          ),
+          Text(title, textAlign: TextAlign.center, style: MfText.tituloCartao),
           const SizedBox(height: 6),
           Text(
             description,
             textAlign: TextAlign.center,
             style: MfText.pequeno.copyWith(fontSize: 14),
           ),
-          if (action != null) ...[
-            const SizedBox(height: 16),
-            action!,
-          ],
+          if (action != null) ...[const SizedBox(height: 16), action!],
         ],
       ),
     );
@@ -279,9 +265,7 @@ void showFormulaExplanationSheet(
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(title, style: MfText.subtitulo),
-                    ),
+                    Expanded(child: Text(title, style: MfText.subtitulo)),
                     IconButton(
                       onPressed: () => Navigator.of(ctx).pop(),
                       icon: const MetaFeitaIcon(MfIcon.fechar),
@@ -321,7 +305,10 @@ void showFormulaExplanationSheet(
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(rule, style: MfText.corpo.copyWith(fontSize: 15)),
+                          child: Text(
+                            rule,
+                            style: MfText.corpo.copyWith(fontSize: 15),
+                          ),
                         ),
                       ],
                     ),

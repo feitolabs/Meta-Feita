@@ -10,6 +10,7 @@ import '../../domain/models/simulation_models.dart';
 import '../../domain/rules/formatters.dart';
 import '../../domain/validation/input_validators.dart';
 import '../theme/meta_feita_theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/cards.dart';
 import '../widgets/chart_card.dart';
 import '../widgets/credit_cost_dialog.dart';
@@ -115,7 +116,8 @@ class _JurosCompostosScreenState extends State<JurosCompostosScreen>
     final errors = <String, String>{};
     final capital = PtBrFormatters.parseUserDecimal(_capitalCtrl.text);
     if (_capitalCtrl.text.trim().isEmpty || capital == null) {
-      errors['initialCapital'] = 'Informe o capital inicial (use 0 se partir do zero).';
+      errors['initialCapital'] =
+          'Informe o capital inicial (use 0 se partir do zero).';
     }
     final aporte = _aporteCtrl.text.trim().isEmpty
         ? Decimal.zero
@@ -222,7 +224,9 @@ class _JurosCompostosScreenState extends State<JurosCompostosScreen>
         onSaved: (title) {
           setState(() => _editingTitle = title);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Simulação salva no histórico local.')),
+            const SnackBar(
+              content: Text('Simulação salva no histórico local.'),
+            ),
           );
         },
       );
@@ -475,7 +479,9 @@ class _JurosResultadoView extends StatelessWidget {
         .map((p) => FlSpot(p.periodIndex.toDouble(), p.balance.toDouble()))
         .toList();
     final investidoSpots = result.series
-        .map((p) => FlSpot(p.periodIndex.toDouble(), p.totalInvested.toDouble()))
+        .map(
+          (p) => FlSpot(p.periodIndex.toDouble(), p.totalInvested.toDouble()),
+        )
         .toList();
 
     return ListView(
@@ -488,9 +494,7 @@ class _JurosResultadoView extends StatelessWidget {
               onPressed: onBackToEdit,
               icon: const MetaFeitaIcon(MfIcon.voltar, size: 22),
             ),
-            Expanded(
-              child: Text('Resultado', style: MfText.subtitulo),
-            ),
+            Expanded(child: Text('Resultado', style: MfText.subtitulo)),
             IconButton(
               tooltip: 'Relatório detalhado',
               onPressed: () => _exportDetailedReport(context),
@@ -617,14 +621,14 @@ class _JurosResultadoView extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         ContornoButton(
-          label: 'Relatório detalhado (${controller.catalog.findFeature('detailed_report')?.creditCost ?? 2} créditos)',
+          label:
+              'Relatório detalhado (${controller.catalog.findFeature('detailed_report')?.creditCost ?? 2} créditos)',
           leadingIcon: const MetaFeitaIcon(MfIcon.exportar, size: 18),
           onPressed: () => _exportDetailedReport(context),
         ),
         const SizedBox(height: 14),
-        const SafeAdBannerSlot(),
-        const SizedBox(height: 8),
         const ProjectionDisclaimer(),
+        SafeAdBannerSlot(ads: controller.ads),
       ],
     );
   }
@@ -636,6 +640,7 @@ class _JurosResultadoView extends StatelessWidget {
     final savedTitle = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Salvar no histórico local', style: MfText.tituloCartao),
         content: TextField(
           controller: ctrl,
@@ -698,7 +703,9 @@ class _JurosResultadoView extends StatelessWidget {
         featureId: 'detailed_report',
         action: () async {
           final buf = StringBuffer()
-            ..writeln('Periodo;Saldo;Total Investido;Aporte;Rendimento do Periodo')
+            ..writeln(
+              'Periodo;Saldo;Total Investido;Aporte;Rendimento do Periodo',
+            )
             ..writeAll(
               result.series.map(
                 (p) =>
@@ -712,6 +719,7 @@ class _JurosResultadoView extends StatelessWidget {
       showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
+          scrollable: true,
           title: Text('Relatório detalhado gerado', style: MfText.tituloCartao),
           content: SizedBox(
             width: 520,
@@ -730,9 +738,9 @@ class _JurosResultadoView extends StatelessWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -885,4 +893,3 @@ class _IrregularContributionsCard extends StatelessWidget {
     );
   }
 }
-

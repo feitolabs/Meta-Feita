@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'application/app_controller.dart';
+import 'infrastructure/ads/ad_gateway_factory.dart';
+import 'infrastructure/billing/billing_gateway_factory.dart';
 import 'infrastructure/monetization/monetization_api_client.dart';
 import 'infrastructure/storage/local_storage_adapter.dart';
 import 'ui/navigation/app_shell.dart';
@@ -15,6 +17,8 @@ void main() {
   final controller = AppController(
     storage: FlutterLocalStorageAdapter(),
     apiClient: HttpMonetizationApiClient(),
+    ads: createAdGateway(),
+    billing: createBillingGateway(),
   );
   runApp(MetaFeitaApp(controller: controller));
 }
@@ -80,7 +84,8 @@ class _AppBootstrapGateState extends State<_AppBootstrapGate> {
   @override
   void initState() {
     super.initState();
-    _controller = widget.controller ??
+    _controller =
+        widget.controller ??
         AppController(
           storage: FlutterLocalStorageAdapter(),
           apiClient: HttpMonetizationApiClient(),
@@ -91,7 +96,11 @@ class _AppBootstrapGateState extends State<_AppBootstrapGate> {
   Future<void> _boot() async {
     await _controller.loadLocalState();
     if (widget.autoSyncCredits) {
-      unawaited(_controller.syncCreditsAndCatalog());
+      unawaited(
+        _controller.syncCreditsAndCatalog().whenComplete(
+          _controller.startBilling,
+        ),
+      );
     }
 
     if (widget.showSplash) {
@@ -100,6 +109,8 @@ class _AppBootstrapGateState extends State<_AppBootstrapGate> {
 
     if (mounted) {
       setState(() => _ready = true);
+      // O formulário de consentimento aparece sobre o app já carregado.
+      unawaited(_controller.ads.initialize());
     }
   }
 

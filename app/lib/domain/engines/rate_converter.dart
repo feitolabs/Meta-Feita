@@ -12,10 +12,9 @@ class RateConverter {
 
     final onePlus = Decimal.one + rate.value;
     if (onePlus <= Decimal.zero) {
-      throw const DomainValidationException(
-        {'rate': 'Taxa por período deve ser maior que -100%.'},
-        'Taxa por período deve ser maior que -100%.',
-      );
+      throw const DomainValidationException({
+        'rate': 'Taxa por período deve ser maior que -100%.',
+      }, 'Taxa por período deve ser maior que -100%.');
     }
 
     switch (rate.period) {
@@ -26,10 +25,9 @@ class RateConverter {
           // Nominal anual capitalizada mensalmente: j / 12
           final monthly = DecimalMath.div(rate.value, DecimalMath.twelve);
           if (monthly <= Decimal.fromInt(-1)) {
-            throw const DomainValidationException(
-              {'rate': 'Taxa mensal equivalente deve ser maior que -100%.'},
-              'Taxa mensal equivalente deve ser maior que -100%.',
-            );
+            throw const DomainValidationException({
+              'rate': 'Taxa mensal equivalente deve ser maior que -100%.',
+            }, 'Taxa mensal equivalente deve ser maior que -100%.');
           }
           return monthly;
         }
@@ -40,10 +38,7 @@ class RateConverter {
       case RatePeriod.weekly:
         if (rate.kind == RateKind.nominal) {
           // Nominal semanal -> equivalente composta com 52 semanas/ano -> 12 meses
-          final annual = DecimalMath.powInt(
-            Decimal.one + rate.value,
-            52,
-          );
+          final annual = DecimalMath.powInt(Decimal.one + rate.value, 52);
           return DecimalMath.roundInternal(
             DecimalMath.nthRoot(annual, 12) - Decimal.one,
           );
@@ -67,4 +62,3 @@ class RateConverter {
     );
   }
 }
-

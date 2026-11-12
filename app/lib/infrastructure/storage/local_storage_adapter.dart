@@ -55,4 +55,3 @@ class InMemoryLocalStorageAdapter implements LocalStorageAdapter {
     _store.clear();
   }
 }
-

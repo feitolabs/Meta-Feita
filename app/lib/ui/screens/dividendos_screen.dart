@@ -9,6 +9,7 @@ import '../../domain/models/simulation_models.dart';
 import '../../domain/rules/formatters.dart';
 import '../../domain/validation/input_validators.dart';
 import '../theme/meta_feita_theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/cards.dart';
 import '../widgets/inputs.dart';
 import '../widgets/meta_feita_buttons.dart';
@@ -172,6 +173,7 @@ class _DividendosScreenState extends State<DividendosScreen>
     final title = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Salvar simulação', style: MfText.tituloCartao),
         content: TextField(
           controller: ctrl,
@@ -234,9 +236,7 @@ class _DividendosScreenState extends State<DividendosScreen>
                       onPressed: widget.onBack,
                       icon: const MetaFeitaIcon(MfIcon.voltar, size: 22),
                     ),
-                  Expanded(
-                    child: Text('Dividendos', style: MfText.subtitulo),
-                  ),
+                  Expanded(child: Text('Dividendos', style: MfText.subtitulo)),
                   IconButton(
                     tooltip: 'Entender o cálculo',
                     onPressed: () => showFormulaExplanationSheet(
@@ -366,8 +366,9 @@ class _DividendosScreenState extends State<DividendosScreen>
                                   ),
                                   dividendPerUnit:
                                       PtBrFormatters.parseUserDecimal(
-                                              _divCtrl.text) ??
-                                          Decimal.parse('0.50'),
+                                        _divCtrl.text,
+                                      ) ??
+                                      Decimal.parse('0.50'),
                                 ),
                               );
                               _recompute();
@@ -393,7 +394,10 @@ class _DividendosScreenState extends State<DividendosScreen>
                                 _irregularEvents.removeAt(i);
                                 _recompute();
                               },
-                              icon: const MetaFeitaIcon(MfIcon.excluir, size: 18),
+                              icon: const MetaFeitaIcon(
+                                MfIcon.excluir,
+                                size: 18,
+                              ),
                             ),
                           ],
                         ),
@@ -441,7 +445,8 @@ class _DividendosScreenState extends State<DividendosScreen>
                                 const SizedBox(height: 4),
                                 Text(
                                   PtBrFormatters.money(
-                                      res.estimated12MonthsTotal),
+                                    res.estimated12MonthsTotal,
+                                  ),
                                   style: MfText.tituloCartao.copyWith(
                                     color: Colors.white,
                                   ),
@@ -540,7 +545,8 @@ class _DividendosScreenState extends State<DividendosScreen>
                               const SizedBox(width: 8),
                               Text(
                                 PtBrFormatters.money(
-                                    res.estimatedRequiredCapital!),
+                                  res.estimatedRequiredCapital!,
+                                ),
                                 style: MfText.rotulo,
                               ),
                             ],
@@ -554,8 +560,9 @@ class _DividendosScreenState extends State<DividendosScreen>
                 LightCard(
                   padding: const EdgeInsets.all(16),
                   child: Theme(
-                    data: Theme.of(context)
-                        .copyWith(dividerColor: Colors.transparent),
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       tilePadding: EdgeInsets.zero,
                       title: Text(
@@ -609,6 +616,7 @@ class _DividendosScreenState extends State<DividendosScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
+                SafeAdBannerSlot(ads: widget.controller.ads),
                 const ProjectionDisclaimer(
                   extraNotice:
                       'Proventos e preços informados são hipóteses. Dividendos não são garantidos.',

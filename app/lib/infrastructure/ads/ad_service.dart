@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 
-/// Adaptador de publicidade em conformidade com Doc 01 §9:
+/// Identificadores de anúncios em conformidade com Doc 01 §9:
 /// - Usa IDs oficiais de teste do Google AdMob em desenvolvimento.
-/// - Nunca envia parâmetros financeiros ou conteúdo das simulações.
-/// - Nunca exibe anúncios antes do resultado básico nem sobre campos de entrada.
+/// - IDs reais vêm de --dart-define-from-file; teste e produção nunca se misturam.
 class AdService {
+  static const String _googleTestPublisher = 'ca-app-pub-3940256099942544';
+
   static const String androidBannerId = String.fromEnvironment(
     'ADMOB_BANNER_ANDROID_ID',
     defaultValue: 'ca-app-pub-3940256099942544/6300978111',
@@ -22,21 +23,19 @@ class AdService {
     defaultValue: 'ca-app-pub-3940256099942544/1712485313',
   );
 
+  /// Blocos de teste do Google não disparam o callback de verificação no servidor.
   static bool get isUsingTestIds =>
-      androidBannerId == 'ca-app-pub-3940256099942544/6300978111';
+      currentRewardedUnitId().startsWith(_googleTestPublisher);
 
   static String currentBannerUnitId() {
-    if (kIsWeb) return 'web-ad-slot-consent';
     return defaultTargetPlatform == TargetPlatform.iOS
         ? iosBannerId
         : androidBannerId;
   }
 
   static String currentRewardedUnitId() {
-    if (kIsWeb) return 'web-rewarded-slot';
     return defaultTargetPlatform == TargetPlatform.iOS
         ? iosRewardedId
         : androidRewardedId;
   }
 }
-

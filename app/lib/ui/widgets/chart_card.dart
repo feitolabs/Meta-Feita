@@ -60,9 +60,7 @@ class ChartCard extends StatelessWidget {
     final maxY = rawMaxY <= 0 ? 100.0 : rawMaxY * 1.12;
     final yInterval = math.max(1.0, (maxY - minY) / 3);
     final xSpan = math.max(1.0, maxX - minX);
-    final xInterval = xSpan <= 5
-        ? 1.0
-        : (xSpan / 5).ceilToDouble();
+    final xInterval = xSpan <= 5 ? 1.0 : (xSpan / 5).ceilToDouble();
 
     return LightCard(
       padding: const EdgeInsets.all(20),
@@ -87,11 +85,13 @@ class ChartCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    s.label,
-                    style: MfText.pequeno.copyWith(
-                      color: MfColors.petroleo,
-                      fontWeight: FontWeight.w500,
+                  Flexible(
+                    child: Text(
+                      s.label,
+                      style: MfText.pequeno.copyWith(
+                        color: MfColors.petroleo,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -111,10 +111,8 @@ class ChartCard extends StatelessWidget {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: yInterval,
-                  getDrawingHorizontalLine: (_) => const FlLine(
-                    color: MfColors.border,
-                    strokeWidth: 1,
-                  ),
+                  getDrawingHorizontalLine: (_) =>
+                      const FlLine(color: MfColors.border, strokeWidth: 1),
                 ),
                 borderData: FlBorderData(
                   show: true,
@@ -129,8 +127,13 @@ class ChartCard extends StatelessWidget {
                   topTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
+                  // Reserva espaço para o rótulo final do eixo X não ser cortado.
+                  rightTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: (_, _) => const SizedBox.shrink(),
+                    ),
                   ),
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -162,7 +165,9 @@ class ChartCard extends StatelessWidget {
                           return const SizedBox.shrink();
                         }
                         final isLast = rounded == maxX.round();
-                        final label = isLast ? '$rounded $xAxisUnit' : '$rounded';
+                        final label = isLast
+                            ? '$rounded $xAxisUnit'
+                            : '$rounded';
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
@@ -210,11 +215,11 @@ class ChartCard extends StatelessWidget {
                           spot.x == barData.spots.last.x,
                       getDotPainter: (spot, percent, barData, index) =>
                           FlDotCirclePainter(
-                        radius: 4.5,
-                        color: MfColors.petroleo,
-                        strokeWidth: 2,
-                        strokeColor: MfColors.areiaCard,
-                      ),
+                            radius: 4.5,
+                            color: MfColors.petroleo,
+                            strokeWidth: 2,
+                            strokeColor: MfColors.areiaCard,
+                          ),
                     ),
                     belowBarData: BarAreaData(
                       show: s.fillArea,
@@ -254,4 +259,3 @@ class ChartCard extends StatelessWidget {
     );
   }
 }
-

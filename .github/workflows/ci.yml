@@ -5,11 +5,25 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   backend-tests:
-    name: Backend Tests & Lint
+    name: Backend Tests (SQLite e PostgreSQL)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: meta_feita_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,21 +39,33 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Run Pytest
+      - name: Run Pytest (SQLite)
         working-directory: backend
-        run: |
-          python -m pytest -v
+        run: python -m pytest -v
+
+      - name: Run Pytest (PostgreSQL)
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/meta_feita_test
+        run: python -m pytest -v
 
   flutter-tests:
-    name: Flutter Analyze, Test & Web Build
+    name: Flutter Analyze, Test, Web e Android
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.8'
           channel: 'stable'
           cache: true
 
@@ -58,3 +84,54 @@ jobs:
       - name: Build Web
         working-directory: app
         run: flutter build web
+
+      # Valida compilação e R8. Sem key.properties, este APK usa a chave de debug.
+      - name: Build Android release APK
+        working-directory: app
+        run: flutter build apk --release
+
+  android-bundle:
+    name: Google Play Bundle (.aab)
+    if: github.event_name == 'workflow_dispatch'
+    needs: [backend-tests, flutter-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.8'
+          channel: 'stable'
+          cache: true
+
+      - name: Restore signing and release configuration
+        working-directory: app
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+          RELEASE_JSON: ${{ secrets.ANDROID_RELEASE_JSON }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/meta-feita-release.jks
+          printf '%s\n' "$KEY_PROPERTIES" > android/key.properties
+          printf '%s\n' "$RELEASE_JSON" > config/release.json
+
+      - name: Build App Bundle
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build appbundle --release --dart-define-from-file=config/release.json
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: app/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 14

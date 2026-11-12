@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import secrets
 from pathlib import Path
 
@@ -11,23 +12,51 @@ from app.config import Settings
 from app.main import create_app
 from app.security import compute_webhook_signature
 
+# Defina para rodar a suíte inteira também em PostgreSQL.
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+CATALOG_PATH = str(Path(__file__).resolve().parents[1] / "catalog.json")
+
+
+def reset_postgres() -> None:
+    if not TEST_DATABASE_URL:
+        return
+    import psycopg
+
+    with psycopg.connect(TEST_DATABASE_URL, autocommit=True) as conn:
+        exists = conn.execute("SELECT to_regclass('public.wallets')").fetchone()[0]
+        if exists:
+            conn.execute(
+                "TRUNCATE credit_ledger, reservations, web_checkouts, "
+                "operational_telemetry, wallets"
+            )
+
+
+def make_settings(tmp_path: Path, **overrides) -> Settings:
+    reset_postgres()
+    values = {
+        "env": "test",
+        "database_path": str(tmp_path / "test_monetization.db"),
+        "database_url": TEST_DATABASE_URL,
+        "catalog_path": CATALOG_PATH,
+    }
+    values.update(overrides)
+    return Settings(_env_file=None, **values)
+
 
 @pytest.fixture()
 def test_env(tmp_path: Path):
     webhook_secret = secrets.token_urlsafe(32)
     ad_secret = secrets.token_urlsafe(32)
-    db_file = tmp_path / "test_monetization.db"
-    settings = Settings(
-        env="test",
-        database_path=str(db_file),
-        catalog_path=str(Path(__file__).resolve().parents[1] / "catalog.json"),
+    settings = make_settings(
+        tmp_path,
         web_webhook_secret=webhook_secret,
         play_validation_mode="sandbox",
         admob_ssv_secret=ad_secret,
     )
     app = create_app(settings)
     client = TestClient(app)
-    return client, webhook_secret, ad_secret
+    yield client, webhook_secret, ad_secret
+    app.state.db.close()
 
 
 def test_health_and_catalog(test_env):
@@ -345,10 +374,9 @@ def test_telemetry_blocks_financial_parameters(test_env):
 
 def test_webhook_amount_currency_mismatch_and_production_ad_guard(tmp_path: Path):
     webhook_secret = secrets.token_urlsafe(32)
-    settings = Settings(
+    settings = make_settings(
+        tmp_path,
         env="production",
-        database_path=str(tmp_path / "prod_guard.db"),
-        catalog_path=str(Path(__file__).resolve().parents[1] / "catalog.json"),
         web_webhook_secret=webhook_secret,
         play_validation_mode="disabled",
         admob_ssv_secret="",
@@ -395,4 +423,4 @@ def test_webhook_amount_currency_mismatch_and_production_ad_guard(tmp_path: Path
     )
     assert ad_res.status_code == 503
     assert ad_res.json()["code"] == "AD_VERIFICATION_NOT_CONFIGURED"
-
+    app.state.db.close()

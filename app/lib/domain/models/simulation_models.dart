@@ -16,26 +16,26 @@ enum SimulationType {
 
 extension SimulationTypeLabel on SimulationType {
   String get eyebrowPt => switch (this) {
-        SimulationType.compoundInterest => 'JUROS COMPOSTOS',
-        SimulationType.dividends => 'DIVIDENDOS',
-        SimulationType.reinvestment => 'REINVESTIMENTO',
-        SimulationType.goal => 'META',
-        SimulationType.comparator => 'COMPARADOR',
-        SimulationType.inflation => 'INFLAÇÃO',
-        SimulationType.withdrawal => 'RETIRADAS',
-        SimulationType.retirement => 'APOSENTADORIA',
-      };
+    SimulationType.compoundInterest => 'JUROS COMPOSTOS',
+    SimulationType.dividends => 'DIVIDENDOS',
+    SimulationType.reinvestment => 'REINVESTIMENTO',
+    SimulationType.goal => 'META',
+    SimulationType.comparator => 'COMPARADOR',
+    SimulationType.inflation => 'INFLAÇÃO',
+    SimulationType.withdrawal => 'RETIRADAS',
+    SimulationType.retirement => 'APOSENTADORIA',
+  };
 
   String get labelPt => switch (this) {
-        SimulationType.compoundInterest => 'Juros compostos',
-        SimulationType.dividends => 'Dividendos',
-        SimulationType.reinvestment => 'Reinvestimento',
-        SimulationType.goal => 'Meta',
-        SimulationType.comparator => 'Comparador',
-        SimulationType.inflation => 'Inflação',
-        SimulationType.withdrawal => 'Retiradas',
-        SimulationType.retirement => 'Aposentadoria',
-      };
+    SimulationType.compoundInterest => 'Juros compostos',
+    SimulationType.dividends => 'Dividendos',
+    SimulationType.reinvestment => 'Reinvestimento',
+    SimulationType.goal => 'Meta',
+    SimulationType.comparator => 'Comparador',
+    SimulationType.inflation => 'Inflação',
+    SimulationType.withdrawal => 'Retiradas',
+    SimulationType.retirement => 'Aposentadoria',
+  };
 }
 
 class SimulationSeriesPoint {
@@ -60,15 +60,15 @@ class SimulationSeriesPoint {
   });
 
   Map<String, dynamic> toJson() => {
-        'periodIndex': periodIndex,
-        'dateOrPeriod': dateOrPeriod,
-        'balance': balance.toString(),
-        'totalInvested': totalInvested.toString(),
-        'periodContribution': periodContribution.toString(),
-        'periodReturn': periodReturn.toString(),
-        'cumulativeReturn': cumulativeReturn.toString(),
-        'withdrawals': withdrawals.toString(),
-      };
+    'periodIndex': periodIndex,
+    'dateOrPeriod': dateOrPeriod,
+    'balance': balance.toString(),
+    'totalInvested': totalInvested.toString(),
+    'periodContribution': periodContribution.toString(),
+    'periodReturn': periodReturn.toString(),
+    'cumulativeReturn': cumulativeReturn.toString(),
+    'withdrawals': withdrawals.toString(),
+  };
 
   factory SimulationSeriesPoint.fromJson(Map<String, dynamic> json) {
     return SimulationSeriesPoint(
@@ -91,9 +91,9 @@ class IrregularContribution {
   const IrregularContribution({required this.date, required this.amount});
 
   Map<String, dynamic> toJson() => {
-        'date': date.toIso(),
-        'amount': amount.toString(),
-      };
+    'date': date.toIso(),
+    'amount': amount.toString(),
+  };
 
   factory IrregularContribution.fromJson(Map<String, dynamic> json) {
     return IrregularContribution(
@@ -125,25 +125,28 @@ class CompoundInterestInput {
   });
 
   Map<String, dynamic> toJson() => {
-        'initialCapital': initialCapital.toString(),
-        'contribution': contribution.toString(),
-        'contributionFrequency': contributionFrequency.name,
-        'contributionTiming': contributionTiming.name,
-        'rate': rate.toJson(),
-        'termMonths': termMonths,
-        if (startDate != null) 'startDate': startDate!.toIso(),
-        'irregularContributions':
-            irregularContributions.map((e) => e.toJson()).toList(),
-      };
+    'initialCapital': initialCapital.toString(),
+    'contribution': contribution.toString(),
+    'contributionFrequency': contributionFrequency.name,
+    'contributionTiming': contributionTiming.name,
+    'rate': rate.toJson(),
+    'termMonths': termMonths,
+    if (startDate != null) 'startDate': startDate!.toIso(),
+    'irregularContributions': irregularContributions
+        .map((e) => e.toJson())
+        .toList(),
+  };
 
   factory CompoundInterestInput.fromJson(Map<String, dynamic> json) {
     return CompoundInterestInput(
       initialCapital: Decimal.parse(json['initialCapital'] as String),
       contribution: Decimal.parse(json['contribution'] as String),
-      contributionFrequency: ContributionFrequency.values
-          .byName(json['contributionFrequency'] as String),
-      contributionTiming:
-          ContributionTiming.values.byName(json['contributionTiming'] as String),
+      contributionFrequency: ContributionFrequency.values.byName(
+        json['contributionFrequency'] as String,
+      ),
+      contributionTiming: ContributionTiming.values.byName(
+        json['contributionTiming'] as String,
+      ),
       rate: RateInput.fromJson(json['rate'] as Map<String, dynamic>),
       termMonths: json['termMonths'] as int,
       startDate: json['startDate'] != null
@@ -151,8 +154,10 @@ class CompoundInterestInput {
           : null,
       irregularContributions:
           (json['irregularContributions'] as List<dynamic>? ?? [])
-              .map((e) =>
-                  IrregularContribution.fromJson(e as Map<String, dynamic>))
+              .map(
+                (e) =>
+                    IrregularContribution.fromJson(e as Map<String, dynamic>),
+              )
               .toList(),
     );
   }
@@ -178,14 +183,14 @@ class CompoundInterestResult {
   });
 
   Map<String, dynamic> toJson() => {
-        'finalValue': finalValue.toString(),
-        'totalPrincipal': totalPrincipal.toString(),
-        'totalReturn': totalReturn.toString(),
-        'effectiveMonthlyRate': effectiveMonthlyRate.toString(),
-        'effectiveAnnualRate': effectiveAnnualRate.toString(),
-        'series': series.map((e) => e.toJson()).toList(),
-        'assumptions': assumptions,
-      };
+    'finalValue': finalValue.toString(),
+    'totalPrincipal': totalPrincipal.toString(),
+    'totalReturn': totalReturn.toString(),
+    'effectiveMonthlyRate': effectiveMonthlyRate.toString(),
+    'effectiveAnnualRate': effectiveAnnualRate.toString(),
+    'series': series.map((e) => e.toJson()).toList(),
+    'assumptions': assumptions,
+  };
 }
 
 class IrregularDividendEvent {
@@ -198,9 +203,9 @@ class IrregularDividendEvent {
   });
 
   Map<String, dynamic> toJson() => {
-        'date': date.toIso(),
-        'dividendPerUnit': dividendPerUnit.toString(),
-      };
+    'date': date.toIso(),
+    'dividendPerUnit': dividendPerUnit.toString(),
+  };
 
   factory IrregularDividendEvent.fromJson(Map<String, dynamic> json) {
     return IrregularDividendEvent(
@@ -232,17 +237,17 @@ class DividendsInput {
   });
 
   Map<String, dynamic> toJson() => {
-        'quantity': quantity.toString(),
-        'unitPrice': unitPrice.toString(),
-        'dividendPerUnit': dividendPerUnit.toString(),
-        'frequency': frequency.name,
-        'fractionalMode': fractionalMode,
-        if (desiredMonthlyIncome != null)
-          'desiredMonthlyIncome': desiredMonthlyIncome.toString(),
-        if (optionalAnnualGrowthRate != null)
-          'optionalAnnualGrowthRate': optionalAnnualGrowthRate.toString(),
-        'irregularEvents': irregularEvents.map((e) => e.toJson()).toList(),
-      };
+    'quantity': quantity.toString(),
+    'unitPrice': unitPrice.toString(),
+    'dividendPerUnit': dividendPerUnit.toString(),
+    'frequency': frequency.name,
+    'fractionalMode': fractionalMode,
+    if (desiredMonthlyIncome != null)
+      'desiredMonthlyIncome': desiredMonthlyIncome.toString(),
+    if (optionalAnnualGrowthRate != null)
+      'optionalAnnualGrowthRate': optionalAnnualGrowthRate.toString(),
+    'irregularEvents': irregularEvents.map((e) => e.toJson()).toList(),
+  };
 
   factory DividendsInput.fromJson(Map<String, dynamic> json) {
     return DividendsInput(
@@ -258,7 +263,9 @@ class DividendsInput {
           ? Decimal.parse(json['optionalAnnualGrowthRate'] as String)
           : null,
       irregularEvents: (json['irregularEvents'] as List<dynamic>? ?? [])
-          .map((e) => IrregularDividendEvent.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => IrregularDividendEvent.fromJson(e as Map<String, dynamic>),
+          )
           .toList(),
     );
   }
@@ -335,10 +342,10 @@ class ReinvestmentInput {
     Decimal? additionalMonthlyContribution,
     Decimal? explicitCostPerPurchase,
     this.customPriceSeries = const [],
-  })  : initialCash = initialCash ?? Decimal.zero,
-        additionalMonthlyContribution =
-            additionalMonthlyContribution ?? Decimal.zero,
-        explicitCostPerPurchase = explicitCostPerPurchase ?? Decimal.zero;
+  }) : initialCash = initialCash ?? Decimal.zero,
+       additionalMonthlyContribution =
+           additionalMonthlyContribution ?? Decimal.zero,
+       explicitCostPerPurchase = explicitCostPerPurchase ?? Decimal.zero;
 }
 
 class ReinvestmentPeriodPoint {
@@ -547,10 +554,7 @@ class ComparatorScenarioInput {
   final String name;
   final CompoundInterestInput input;
 
-  const ComparatorScenarioInput({
-    required this.name,
-    required this.input,
-  });
+  const ComparatorScenarioInput({required this.name, required this.input});
 }
 
 class ComparatorScenarioOutput {
@@ -623,16 +627,16 @@ class SavedSimulation {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'type': type.name,
-        'summaryLabel': summaryLabel,
-        'inputData': inputData,
-        'resultData': resultData,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-        'schemaVersion': schemaVersion,
-      };
+    'id': id,
+    'title': title,
+    'type': type.name,
+    'summaryLabel': summaryLabel,
+    'inputData': inputData,
+    'resultData': resultData,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'schemaVersion': schemaVersion,
+  };
 
   factory SavedSimulation.fromJson(Map<String, dynamic> json) {
     return SavedSimulation(

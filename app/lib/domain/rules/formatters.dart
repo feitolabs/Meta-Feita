@@ -38,7 +38,11 @@ class PtBrFormatters {
     return percent(fraction.shift(2), decimals: decimals);
   }
 
-  static String percent(Decimal pct, {int decimals = 2, bool trimTrailingZeros = false}) {
+  static String percent(
+    Decimal pct, {
+    int decimals = 2,
+    bool trimTrailingZeros = false,
+  }) {
     final rounded = pct.round(scale: decimals);
     var str = rounded.toStringAsFixed(decimals).replaceAll('.', ',');
     if (trimTrailingZeros && decimals > 0) {
@@ -113,4 +117,3 @@ class PtBrFormatters {
     return negative ? '-${buf.toString()}' : buf.toString();
   }
 }
-

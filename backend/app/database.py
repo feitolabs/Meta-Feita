@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterator, Sequence
 
 
 SCHEMA_SQL = """
@@ -83,6 +83,13 @@ CREATE TABLE IF NOT EXISTS operational_telemetry (
 
 
 class Database:
+    """Persistência SQLite (padrão para desenvolvimento e servidor com disco)."""
+
+    # BEGIN IMMEDIATE já serializa escritas, então não há trava por linha.
+    wallet_lock_clause = ""
+    ledger_tiebreak_column = "rowid"
+    integrity_errors: tuple[type[Exception], ...] = (sqlite3.IntegrityError,)
+
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
         if db_path != ":memory:":
@@ -125,3 +132,83 @@ class Database:
             yield conn
         finally:
             conn.close()
+
+    def close(self) -> None:
+        """SQLite abre uma conexão por operação; nada a liberar."""
+
+
+class _PostgresConnection:
+    """Aceita os mesmos placeholders "?" usados nas consultas SQLite."""
+
+    def __init__(self, conn: Any) -> None:
+        self._conn = conn
+
+    def execute(self, sql: str, params: Sequence[Any] = ()) -> Any:
+        return self._conn.execute(sql.replace("?", "%s"), params)
+
+
+class PostgresDatabase:
+    """Persistência PostgreSQL, com trava por carteira durante cada transação."""
+
+    wallet_lock_clause = " FOR UPDATE"
+    ledger_tiebreak_column = "seq"
+
+    def __init__(self, database_url: str) -> None:
+        # Importado aqui para o SQLite continuar funcionando sem o driver.
+        import psycopg
+        from psycopg.rows import dict_row
+        from psycopg_pool import ConnectionPool
+
+        self.integrity_errors = (psycopg.IntegrityError,)
+        self._pool = ConnectionPool(
+            conninfo=database_url,
+            min_size=1,
+            max_size=10,
+            timeout=15,
+            max_idle=300,
+            # Conexões derrubadas pelo servidor (ociosidade, manutenção, failover) são
+            # descartadas antes do uso, em vez de virarem erro 500 para quem pediu.
+            check=ConnectionPool.check_connection,
+            kwargs={"row_factory": dict_row},
+            open=True,
+        )
+        self._init_schema()
+
+    def _init_schema(self) -> None:
+        schema = SCHEMA_SQL.replace("PRAGMA foreign_keys = ON;", "")
+        with self._pool.connection() as conn:
+            # Serializa a criação do esquema quando web e rotinas iniciam ao mesmo tempo.
+            conn.execute("SELECT pg_advisory_xact_lock(727274)")
+            conn.execute(schema)
+            has_seq = conn.execute(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'credit_ledger' AND column_name = 'seq'
+                """
+            ).fetchone()
+            if has_seq is None:
+                conn.execute("ALTER TABLE credit_ledger ADD COLUMN seq BIGSERIAL")
+
+    @contextmanager
+    def transaction(self) -> Iterator[_PostgresConnection]:
+        # O contexto do pool confirma ao sair e desfaz em caso de exceção.
+        with self._pool.connection() as conn:
+            yield _PostgresConnection(conn)
+
+    @contextmanager
+    def read(self) -> Iterator[_PostgresConnection]:
+        with self._pool.connection() as conn:
+            yield _PostgresConnection(conn)
+
+    def close(self) -> None:
+        self._pool.close()
+
+
+AnyDatabase = Database | PostgresDatabase
+
+
+def create_database(database_path: str, database_url: str | None) -> AnyDatabase:
+    if database_url:
+        return PostgresDatabase(database_url)
+    return Database(database_path)

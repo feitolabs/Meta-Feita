@@ -8,6 +8,7 @@ import '../../domain/models/simulation_models.dart';
 import '../../domain/rules/formatters.dart';
 import '../../domain/validation/input_validators.dart';
 import '../theme/meta_feita_theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/cards.dart';
 import '../widgets/chart_card.dart';
 import '../widgets/inputs.dart';
@@ -18,11 +19,7 @@ class AposentadoriaScreen extends StatefulWidget {
   final AppController controller;
   final VoidCallback? onBack;
 
-  const AposentadoriaScreen({
-    super.key,
-    required this.controller,
-    this.onBack,
-  });
+  const AposentadoriaScreen({super.key, required this.controller, this.onBack});
 
   @override
   State<AposentadoriaScreen> createState() => _AposentadoriaScreenState();
@@ -77,7 +74,9 @@ class _AposentadoriaScreenState extends State<AposentadoriaScreen>
 
     if (age == null) errors['currentAge'] = 'Idade inválida.';
     if (targetAge == null) errors['targetAge'] = 'Idade-alvo inválida.';
-    if (years == null) errors['withdrawalYears'] = 'Anos de usufruto inválidos.';
+    if (years == null) {
+      errors['withdrawalYears'] = 'Anos de usufruto inválidos.';
+    }
     if (cap == null) errors['currentCapital'] = 'Capital inválido.';
     if (pmt == null) errors['monthlyContribution'] = 'Aporte inválido.';
     if (nom == null) errors['nominalRate'] = 'Taxa nominal inválida.';
@@ -140,8 +139,9 @@ class _AposentadoriaScreenState extends State<AposentadoriaScreen>
       },
       resultData: {
         'estimatedRealCapital': res.estimatedRealCapital.toString(),
-        'projectedSustainableMonthlyRealIncome':
-            res.projectedSustainableMonthlyRealIncome.toString(),
+        'projectedSustainableMonthlyRealIncome': res
+            .projectedSustainableMonthlyRealIncome
+            .toString(),
       },
     );
     ScaffoldMessenger.of(context).showSnackBar(
@@ -273,8 +273,9 @@ class _AposentadoriaScreenState extends State<AposentadoriaScreen>
                     children: [
                       Text(
                         'RENDA REAL ESTIMADA NA APOSENTADORIA',
-                        style: MfText.legenda
-                            .copyWith(color: MfColors.azulRioClaro),
+                        style: MfText.legenda.copyWith(
+                          color: MfColors.azulRioClaro,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -304,33 +305,41 @@ class _AposentadoriaScreenState extends State<AposentadoriaScreen>
                               children: [
                                 Text(
                                   'Patrimônio em poder de hoje',
-                                  style: MfText.pequeno
-                                      .copyWith(color: MfColors.nevoaClaro),
+                                  style: MfText.pequeno.copyWith(
+                                    color: MfColors.nevoaClaro,
+                                  ),
                                 ),
                                 Text(
-                                  PtBrFormatters.money(res.estimatedRealCapital),
-                                  style: MfText.tituloCartao
-                                      .copyWith(color: Colors.white),
+                                  PtBrFormatters.money(
+                                    res.estimatedRealCapital,
+                                  ),
+                                  style: MfText.tituloCartao.copyWith(
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Aporte ideal (hoje)',
-                                  style: MfText.pequeno
-                                      .copyWith(color: MfColors.nevoaClaro),
+                                  style: MfText.pequeno.copyWith(
+                                    color: MfColors.nevoaClaro,
+                                  ),
                                 ),
                                 Text(
                                   res.requiredMonthlyContribution != null
                                       ? PtBrFormatters.money(
-                                          res.requiredMonthlyContribution!)
+                                          res.requiredMonthlyContribution!,
+                                        )
                                       : '—',
-                                  style: MfText.tituloCartao
-                                      .copyWith(color: Colors.white),
+                                  style: MfText.tituloCartao.copyWith(
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -342,14 +351,19 @@ class _AposentadoriaScreenState extends State<AposentadoriaScreen>
                 ),
                 const SizedBox(height: 14),
                 ChartCard(
-                  title: 'Acumulação nominal até os ${_targetAgeCtrl.text} anos',
+                  title:
+                      'Acumulação nominal até os ${_targetAgeCtrl.text} anos',
                   xAxisUnit: 'meses',
                   seriesList: [
                     ChartSeriesData(
                       label: 'Saldo nominal acumulado',
                       spots: res.accumulationSeries
-                          .map((p) => FlSpot(
-                              p.periodIndex.toDouble(), p.balance.toDouble()))
+                          .map(
+                            (p) => FlSpot(
+                              p.periodIndex.toDouble(),
+                              p.balance.toDouble(),
+                            ),
+                          )
                           .toList(),
                       color: MfColors.petroleo,
                       fillArea: true,
@@ -358,6 +372,7 @@ class _AposentadoriaScreenState extends State<AposentadoriaScreen>
                   ],
                 ),
                 const SizedBox(height: 14),
+                SafeAdBannerSlot(ads: widget.controller.ads),
                 AssumptionDisclosure(assumptions: res.assumptions),
                 const SizedBox(height: 8),
                 const ProjectionDisclaimer(
@@ -383,4 +398,3 @@ class _AposentadoriaScreenState extends State<AposentadoriaScreen>
     );
   }
 }
-

@@ -65,20 +65,30 @@ class ConfiguracoesScreen extends StatelessWidget {
                 ),
               ),
               const Divider(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Moeda padrão', style: MfText.corpo),
-                  Text('Real brasileiro (R\$)', style: MfText.rotulo),
-                ],
+              SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 12,
+                  runSpacing: 2,
+                  children: [
+                    Text('Moeda padrão', style: MfText.corpo),
+                    Text('Real brasileiro (R\$)', style: MfText.rotulo),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Formato numérico', style: MfText.corpo),
-                  Text('pt-BR (1.234,56)', style: MfText.rotulo),
-                ],
+              SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 12,
+                  runSpacing: 2,
+                  children: [
+                    Text('Formato numérico', style: MfText.corpo),
+                    Text('pt-BR (1.234,56)', style: MfText.rotulo),
+                  ],
+                ),
               ),
             ],
           ),
@@ -102,7 +112,10 @@ class ConfiguracoesScreen extends StatelessWidget {
                     child: ContornoButton(
                       label: 'Exportar',
                       compact: true,
-                      leadingIcon: const MetaFeitaIcon(MfIcon.exportar, size: 17),
+                      leadingIcon: const MetaFeitaIcon(
+                        MfIcon.exportar,
+                        size: 17,
+                      ),
                       onPressed: () => _exportBackup(context),
                     ),
                   ),
@@ -111,7 +124,10 @@ class ConfiguracoesScreen extends StatelessWidget {
                     child: ContornoButton(
                       label: 'Restaurar',
                       compact: true,
-                      leadingIcon: const MetaFeitaIcon(MfIcon.restaurar, size: 17),
+                      leadingIcon: const MetaFeitaIcon(
+                        MfIcon.restaurar,
+                        size: 17,
+                      ),
                       onPressed: () => _restoreBackup(context),
                     ),
                   ),
@@ -168,6 +184,27 @@ class ConfiguracoesScreen extends StatelessWidget {
                 title: Text('Privacidade', style: MfText.rotulo),
                 trailing: const MetaFeitaIcon(MfIcon.avancar, size: 18),
                 onTap: () => onNavigate(AppRoute.privacidade),
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: controller.ads.privacyOptionsRequired,
+                builder: (context, required, _) {
+                  if (!required) return const SizedBox.shrink();
+                  return Column(
+                    children: [
+                      const Divider(height: 1),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const MetaFeitaIcon(MfIcon.anuncio, size: 20),
+                        title: Text(
+                          'Preferências de anúncios',
+                          style: MfText.rotulo,
+                        ),
+                        trailing: const MetaFeitaIcon(MfIcon.avancar, size: 18),
+                        onTap: controller.ads.showPrivacyOptions,
+                      ),
+                    ],
+                  );
+                },
               ),
               const Divider(height: 1),
               ListTile(
@@ -226,6 +263,7 @@ class ConfiguracoesScreen extends StatelessWidget {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
+          scrollable: true,
           title: Text('Backup JSON', style: MfText.tituloCartao),
           content: SizedBox(
             width: 480,
@@ -239,9 +277,9 @@ class ConfiguracoesScreen extends StatelessWidget {
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: json));
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('JSON copiado.')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('JSON copiado.')));
               },
               child: const Text('Copiar'),
             ),
@@ -262,6 +300,7 @@ class ConfiguracoesScreen extends StatelessWidget {
       final choice = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
+          scrollable: true,
           title: Text('Restaurar backup', style: MfText.tituloCartao),
           content: Text(
             'Encontradas ${payload.simulations.length} simulação(ões) e ${payload.goals.length} meta(s). '
@@ -286,14 +325,14 @@ class ConfiguracoesScreen extends StatelessWidget {
       );
       if (choice == null || !context.mounted) return;
       controller.applyBackup(payload, replaceAll: choice == 'replace');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup restaurado.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Backup restaurado.')));
     } on BackupValidationException catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -306,6 +345,7 @@ class ConfiguracoesScreen extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Apagar dados locais?', style: MfText.tituloCartao),
         content: Text(
           'Tem certeza? Todas as simulações e metas salvas neste aparelho serão apagadas permanentemente, a menos que você tenha um arquivo de backup.',
@@ -331,4 +371,3 @@ class ConfiguracoesScreen extends StatelessWidget {
     }
   }
 }
-

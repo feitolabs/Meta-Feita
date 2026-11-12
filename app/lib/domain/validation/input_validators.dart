@@ -70,7 +70,8 @@ class InputValidators {
           ? 'O prazo não pode ser negativo.'
           : 'Informe um prazo maior que zero.';
     } else if (months > maxTermMonths) {
-      errors[fieldKey] = 'O prazo máximo permitido é de $maxTermMonths meses (100 anos).';
+      errors[fieldKey] =
+          'O prazo máximo permitido é de $maxTermMonths meses (100 anos).';
     }
   }
 
@@ -91,4 +92,3 @@ class InputValidators {
     }
   }
 }
-

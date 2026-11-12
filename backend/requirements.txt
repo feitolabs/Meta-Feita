@@ -4,5 +4,8 @@ pydantic==2.14.2
 pydantic-settings==2.16.2
 python-dotenv==1.2.4
 httpx==0.28.1
+cryptography==50.0.2
+google-auth==2.62.2
+requests==2.34.2
+psycopg[binary,pool]==3.3.8
 pytest==9.2.0
-

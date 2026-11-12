@@ -22,7 +22,10 @@ class LocalRepositories {
     try {
       final list = jsonDecode(raw) as List<dynamic>;
       return list
-          .map((e) => SavedSimulation.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) =>
+                SavedSimulation.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
           .toList()
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     } catch (_) {
@@ -120,4 +123,3 @@ class LocalRepositories {
     storage.removeItem(preferencesKey);
   }
 }
-

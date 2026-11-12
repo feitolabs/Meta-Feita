@@ -102,4 +102,3 @@ class CivilDate implements Comparable<CivilDate> {
   @override
   String toString() => toIso();
 }
-

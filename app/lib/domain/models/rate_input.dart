@@ -19,60 +19,60 @@ enum DividendFrequency {
 
 extension RateKindLabel on RateKind {
   String get labelPt => switch (this) {
-        RateKind.effective => 'Efetiva',
-        RateKind.nominal => 'Nominal',
-      };
+    RateKind.effective => 'Efetiva',
+    RateKind.nominal => 'Nominal',
+  };
 }
 
 extension RatePeriodLabel on RatePeriod {
   String get suffixPt => switch (this) {
-        RatePeriod.monthly => 'ao mês',
-        RatePeriod.annual => 'ao ano',
-        RatePeriod.weekly => 'por semana',
-        RatePeriod.daily => 'ao dia',
-      };
+    RatePeriod.monthly => 'ao mês',
+    RatePeriod.annual => 'ao ano',
+    RatePeriod.weekly => 'por semana',
+    RatePeriod.daily => 'ao dia',
+  };
 }
 
 extension ContributionFrequencyLabel on ContributionFrequency {
   String get labelPt => switch (this) {
-        ContributionFrequency.weekly => 'Semanal',
-        ContributionFrequency.monthly => 'Mensal',
-        ContributionFrequency.quarterly => 'Trimestral',
-        ContributionFrequency.annual => 'Anual',
-        ContributionFrequency.irregular => 'Irregular',
-      };
+    ContributionFrequency.weekly => 'Semanal',
+    ContributionFrequency.monthly => 'Mensal',
+    ContributionFrequency.quarterly => 'Trimestral',
+    ContributionFrequency.annual => 'Anual',
+    ContributionFrequency.irregular => 'Irregular',
+  };
 }
 
 extension ContributionTimingLabel on ContributionTiming {
   String get labelPt => switch (this) {
-        ContributionTiming.beginning => 'No início do mês',
-        ContributionTiming.end => 'No fim do mês',
-      };
+    ContributionTiming.beginning => 'No início do mês',
+    ContributionTiming.end => 'No fim do mês',
+  };
 
   String get shortPt => switch (this) {
-        ContributionTiming.beginning => 'no início',
-        ContributionTiming.end => 'no fim',
-      };
+    ContributionTiming.beginning => 'no início',
+    ContributionTiming.end => 'no fim',
+  };
 }
 
 extension DividendFrequencyLabel on DividendFrequency {
   String get labelPt => switch (this) {
-        DividendFrequency.monthly => 'Mensal',
-        DividendFrequency.bimonthly => 'Bimestral',
-        DividendFrequency.quarterly => 'Trimestral',
-        DividendFrequency.semiannual => 'Semestral',
-        DividendFrequency.annual => 'Anual',
-        DividendFrequency.irregular => 'Irregular',
-      };
+    DividendFrequency.monthly => 'Mensal',
+    DividendFrequency.bimonthly => 'Bimestral',
+    DividendFrequency.quarterly => 'Trimestral',
+    DividendFrequency.semiannual => 'Semestral',
+    DividendFrequency.annual => 'Anual',
+    DividendFrequency.irregular => 'Irregular',
+  };
 
   int? get eventsPerYear => switch (this) {
-        DividendFrequency.monthly => 12,
-        DividendFrequency.bimonthly => 6,
-        DividendFrequency.quarterly => 4,
-        DividendFrequency.semiannual => 2,
-        DividendFrequency.annual => 1,
-        DividendFrequency.irregular => null,
-      };
+    DividendFrequency.monthly => 12,
+    DividendFrequency.bimonthly => 6,
+    DividendFrequency.quarterly => 4,
+    DividendFrequency.semiannual => 2,
+    DividendFrequency.annual => 1,
+    DividendFrequency.irregular => null,
+  };
 }
 
 class RateInput {
@@ -92,11 +92,7 @@ class RateInput {
     required RateKind kind,
     required RatePeriod period,
   }) {
-    return RateInput(
-      value: percent.shift(-2),
-      kind: kind,
-      period: period,
-    );
+    return RateInput(value: percent.shift(-2), kind: kind, period: period);
   }
 
   Decimal get asPercent => value.shift(2);
@@ -108,10 +104,10 @@ class RateInput {
   }
 
   Map<String, dynamic> toJson() => {
-        'value': value.toString(),
-        'kind': kind.name,
-        'period': period.name,
-      };
+    'value': value.toString(),
+    'kind': kind.name,
+    'period': period.name,
+  };
 
   factory RateInput.fromJson(Map<String, dynamic> json) {
     return RateInput(
@@ -121,4 +117,3 @@ class RateInput {
     );
   }
 }
-

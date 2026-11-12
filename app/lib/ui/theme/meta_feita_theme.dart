@@ -142,4 +142,3 @@ class MetaFeitaTheme {
     return base;
   }
 }
-

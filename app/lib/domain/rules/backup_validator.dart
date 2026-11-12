@@ -76,9 +76,7 @@ class BackupValidator {
     }
 
     if (decoded is! Map<String, dynamic>) {
-      throw const BackupValidationException(
-        'Estrutura de backup inválida.',
-      );
+      throw const BackupValidationException('Estrutura de backup inválida.');
     }
 
     for (final key in decoded.keys) {
@@ -97,7 +95,9 @@ class BackupValidator {
     }
 
     final version = decoded['schemaVersion'];
-    if (version is! int || version < 1 || version > BackupPayload.supportedSchemaVersion) {
+    if (version is! int ||
+        version < 1 ||
+        version > BackupPayload.supportedSchemaVersion) {
       throw const BackupValidationException(
         'Versão do arquivo de backup não suportada.',
       );
@@ -123,7 +123,10 @@ class BackupValidator {
 
     try {
       final sims = rawSims
-          .map((e) => SavedSimulation.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) =>
+                SavedSimulation.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
           .toList();
       final goals = rawGoals
           .map((e) => SavedGoal.fromJson(Map<String, dynamic>.from(e as Map)))
@@ -148,4 +151,3 @@ class BackupValidator {
     }
   }
 }
-

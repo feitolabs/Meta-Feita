@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+import re
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -21,6 +22,28 @@ LedgerStatus = Literal[
     "reversed",
     "rejected",
 ]
+
+
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _has_control_chars(value: Any) -> bool:
+    if isinstance(value, str):
+        return _CONTROL_CHARS.search(value) is not None
+    if isinstance(value, dict):
+        return any(_has_control_chars(k) or _has_control_chars(v) for k, v in value.items())
+    return False
+
+
+class RequestModel(BaseModel):
+    """Base dos corpos recebidos: caracteres de controle (ex.: NUL) quebram o PostgreSQL."""
+
+    @field_validator("*", mode="after")
+    @classmethod
+    def reject_control_characters(cls, value: Any) -> Any:
+        if _has_control_chars(value):
+            raise ValueError("Caracteres de controle não são permitidos.")
+        return value
 
 
 class CreditPackage(BaseModel):
@@ -62,7 +85,7 @@ class WalletInitResponse(BaseModel):
     lastValidatedAt: str
 
 
-class WalletRecoverRequest(BaseModel):
+class WalletRecoverRequest(RequestModel):
     walletReference: str = Field(min_length=8, max_length=128)
     recoveryCode: str = Field(min_length=6, max_length=64)
 
@@ -92,19 +115,19 @@ class TransactionsResponse(BaseModel):
     transactions: list[LedgerEntry]
 
 
-class ConsumeCreditsRequest(BaseModel):
+class ConsumeCreditsRequest(RequestModel):
     walletReference: str = Field(min_length=8, max_length=128)
     featureId: str = Field(min_length=1, max_length=64)
     idempotencyKey: str = Field(min_length=8, max_length=128)
 
 
-class ReserveCreditsRequest(BaseModel):
+class ReserveCreditsRequest(RequestModel):
     walletReference: str = Field(min_length=8, max_length=128)
     featureId: str = Field(min_length=1, max_length=64)
     idempotencyKey: str = Field(min_length=8, max_length=128)
 
 
-class ReservationActionRequest(BaseModel):
+class ReservationActionRequest(RequestModel):
     walletReference: str = Field(min_length=8, max_length=128)
     reservationId: str = Field(min_length=8, max_length=128)
     idempotencyKey: str = Field(min_length=8, max_length=128)
@@ -125,7 +148,7 @@ class CreditOperationResponse(BaseModel):
     idempotentReplay: bool = False
 
 
-class WebCheckoutRequest(BaseModel):
+class WebCheckoutRequest(RequestModel):
     walletReference: str = Field(min_length=8, max_length=128)
     productId: str = Field(min_length=1, max_length=64)
 
@@ -141,7 +164,7 @@ class WebCheckoutResponse(BaseModel):
     checkoutUrl: str
 
 
-class WebWebhookEvent(BaseModel):
+class WebWebhookEvent(RequestModel):
     eventId: str = Field(min_length=4, max_length=128)
     checkoutId: str = Field(min_length=4, max_length=128)
     walletReference: str = Field(min_length=8, max_length=128)
@@ -152,7 +175,7 @@ class WebWebhookEvent(BaseModel):
     status: Literal["pending", "paid", "cancelled", "rejected", "refunded"]
 
 
-class PlayPurchaseValidateRequest(BaseModel):
+class PlayPurchaseValidateRequest(RequestModel):
     walletReference: str = Field(min_length=8, max_length=128)
     productId: str = Field(min_length=1, max_length=64)
     purchaseToken: str = Field(min_length=8, max_length=512)
@@ -177,7 +200,7 @@ class PlayPurchaseValidateResponse(BaseModel):
     idempotentReplay: bool = False
 
 
-class RewardedAdClaimRequest(BaseModel):
+class RewardedAdClaimRequest(RequestModel):
     walletReference: str = Field(min_length=8, max_length=128)
     providerTransactionId: str = Field(min_length=8, max_length=128)
     idempotencyKey: str = Field(min_length=8, max_length=128)
@@ -210,7 +233,12 @@ FORBIDDEN_TELEMETRY_KEYS = {
 }
 
 
-class TelemetryEventRequest(BaseModel):
+MAX_METADATA_ITEMS = 10
+MAX_METADATA_KEY_LENGTH = 40
+MAX_METADATA_VALUE_LENGTH = 100
+
+
+class TelemetryEventRequest(RequestModel):
     model_config = ConfigDict(extra="forbid")
 
     eventName: Literal[
@@ -225,6 +253,20 @@ class TelemetryEventRequest(BaseModel):
     platform: Literal["android", "ios", "web", "desktop"] | None = None
     appVersion: str | None = Field(default=None, max_length=32)
     metadata: dict[str, str | int | bool] = Field(default_factory=dict)
+
+    @field_validator("metadata")
+    @classmethod
+    def limit_metadata_size(
+        cls, value: dict[str, str | int | bool]
+    ) -> dict[str, str | int | bool]:
+        if len(value) > MAX_METADATA_ITEMS:
+            raise ValueError(f"No máximo {MAX_METADATA_ITEMS} campos de metadados.")
+        for key, item in value.items():
+            too_long_key = len(key) > MAX_METADATA_KEY_LENGTH
+            too_long_value = isinstance(item, str) and len(item) > MAX_METADATA_VALUE_LENGTH
+            if too_long_key or too_long_value:
+                raise ValueError("Campo de metadados longo demais.")
+        return value
 
     @field_validator("metadata")
     @classmethod

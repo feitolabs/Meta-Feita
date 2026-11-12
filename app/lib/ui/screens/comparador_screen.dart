@@ -7,6 +7,7 @@ import '../../domain/models/rate_input.dart';
 import '../../domain/models/simulation_models.dart';
 import '../../domain/rules/formatters.dart';
 import '../theme/meta_feita_theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/cards.dart';
 import '../widgets/chart_card.dart';
 import '../widgets/credit_cost_dialog.dart';
@@ -26,10 +27,10 @@ class _EditableScenario {
     required String capital,
     required String aporte,
     required String taxa,
-  })  : name = TextEditingController(text: name),
-        capital = TextEditingController(text: capital),
-        aporte = TextEditingController(text: aporte),
-        taxa = TextEditingController(text: taxa);
+  }) : name = TextEditingController(text: name),
+       capital = TextEditingController(text: capital),
+       aporte = TextEditingController(text: aporte),
+       taxa = TextEditingController(text: taxa);
 
   void dispose() {
     name.dispose();
@@ -43,11 +44,7 @@ class ComparadorScreen extends StatefulWidget {
   final AppController controller;
   final VoidCallback? onBack;
 
-  const ComparadorScreen({
-    super.key,
-    required this.controller,
-    this.onBack,
-  });
+  const ComparadorScreen({super.key, required this.controller, this.onBack});
 
   @override
   State<ComparadorScreen> createState() => _ComparadorScreenState();
@@ -112,7 +109,8 @@ class _ComparadorScreenState extends State<ComparadorScreen>
         final ratePct = PtBrFormatters.parseUserDecimal(s.taxa.text);
         if (cap == null || pmt == null || ratePct == null) {
           throw Exception(
-              'Verifique os números do cenário "${s.name.text.trim()}".');
+            'Verifique os números do cenário "${s.name.text.trim()}".',
+          );
         }
         inputs.add(
           ComparatorScenarioInput(
@@ -167,9 +165,9 @@ class _ComparadorScreenState extends State<ComparadorScreen>
           _extendedUnlocked = true;
         } catch (e) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString())),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.toString())));
           return;
         }
       } else {
@@ -218,9 +216,7 @@ class _ComparadorScreenState extends State<ComparadorScreen>
                 onPressed: widget.onBack,
                 icon: const MetaFeitaIcon(MfIcon.voltar, size: 22),
               ),
-            Expanded(
-              child: Text('Comparador', style: MfText.subtitulo),
-            ),
+            Expanded(child: Text('Comparador', style: MfText.subtitulo)),
             if (_scenarios.length < 4)
               ContornoButton(
                 label: '+ Cenário',
@@ -255,9 +251,13 @@ class _ComparadorScreenState extends State<ComparadorScreen>
                 value: _timing,
                 options: const [
                   SegmentedChoiceOption(
-                      value: ContributionTiming.beginning, label: 'Início'),
+                    value: ContributionTiming.beginning,
+                    label: 'Início',
+                  ),
                   SegmentedChoiceOption(
-                      value: ContributionTiming.end, label: 'Fim do mês'),
+                    value: ContributionTiming.end,
+                    label: 'Fim do mês',
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() => _timing = v);
@@ -350,9 +350,13 @@ class _ComparadorScreenState extends State<ComparadorScreen>
                         value: _scenarios[i].period,
                         options: const [
                           SegmentedChoiceOption(
-                              value: RatePeriod.monthly, label: 'Mês'),
+                            value: RatePeriod.monthly,
+                            label: 'Mês',
+                          ),
                           SegmentedChoiceOption(
-                              value: RatePeriod.annual, label: 'Ano'),
+                            value: RatePeriod.annual,
+                            label: 'Ano',
+                          ),
                         ],
                         onChanged: (v) {
                           setState(() => _scenarios[i].period = v);
@@ -404,8 +408,12 @@ class _ComparadorScreenState extends State<ComparadorScreen>
                 ChartSeriesData(
                   label: _result!.scenarios[i].name,
                   spots: _result!.scenarios[i].result.series
-                      .map((p) => FlSpot(
-                          p.periodIndex.toDouble(), p.balance.toDouble()))
+                      .map(
+                        (p) => FlSpot(
+                          p.periodIndex.toDouble(),
+                          p.balance.toDouble(),
+                        ),
+                      )
                       .toList(),
                   color: colors[i],
                   dashed: i.isOdd,
@@ -440,7 +448,8 @@ class _ComparadorScreenState extends State<ComparadorScreen>
                       ),
                       Text(
                         PtBrFormatters.money(
-                            _result!.scenarios[i].result.finalValue),
+                          _result!.scenarios[i].result.finalValue,
+                        ),
                         style: MfText.rotulo,
                       ),
                     ],
@@ -458,6 +467,8 @@ class _ComparadorScreenState extends State<ComparadorScreen>
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          SafeAdBannerSlot(ads: widget.controller.ads),
         ],
         const SizedBox(height: 12),
         const ProjectionDisclaimer(),

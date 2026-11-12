@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -5,9 +7,21 @@ import '../domain/models/credit_models.dart';
 import '../domain/models/goal_models.dart';
 import '../domain/models/simulation_models.dart';
 import '../domain/rules/backup_validator.dart';
+import '../infrastructure/ads/ad_gateway.dart';
+import '../infrastructure/ads/ad_service.dart';
+import '../infrastructure/billing/billing_gateway.dart';
 import '../infrastructure/monetization/monetization_api_client.dart';
 import '../infrastructure/storage/local_repositories.dart';
 import '../infrastructure/storage/local_storage_adapter.dart';
+
+enum RewardOutcome { credited, pendingConfirmation, notEarned, unavailable }
+
+class RewardClaim {
+  final RewardOutcome outcome;
+  final int? balance;
+
+  const RewardClaim(this.outcome, [this.balance]);
+}
 
 class AppController extends ChangeNotifier {
   static const Uuid _uuid = Uuid();
@@ -15,6 +29,16 @@ class AppController extends ChangeNotifier {
   final LocalStorageAdapter storage;
   late final LocalRepositories _repos;
   final MonetizationClient apiClient;
+  final AdGateway ads;
+  final BillingGateway billing;
+
+  /// Com blocos reais, o crédito é concedido pelo callback do AdMob ao servidor.
+  final bool serverVerifiesRewards;
+  final Duration rewardPollInterval;
+  final int rewardPollAttempts;
+
+  /// Sem Google Play, a biblioteca de cobrança tenta reconectar indefinidamente.
+  final Duration storeTimeout;
 
   List<SavedSimulation> _simulations = [];
   List<SavedGoal> _goals = [];
@@ -32,10 +56,23 @@ class AppController extends ChangeNotifier {
   String? _lastCreditError;
   String? _pendingRecoveryCode;
 
+  StreamSubscription<List<BillingPurchase>>? _billingSubscription;
+  Map<String, BillingProduct> _storeProducts = const {};
+  final Set<String> _purchaseTokensInFlight = {};
+  bool _isPurchasing = false;
+  String? _billingNotice;
+
   AppController({
     required this.storage,
     required this.apiClient,
-  }) {
+    this.ads = const NoAdGateway(),
+    this.billing = const NoBillingGateway(),
+    bool? serverVerifiesRewards,
+    this.rewardPollInterval = const Duration(seconds: 2),
+    this.rewardPollAttempts = 8,
+    this.storeTimeout = const Duration(seconds: 15),
+  }) : serverVerifiesRewards =
+           serverVerifiesRewards ?? !AdService.isUsingTestIds {
     _repos = LocalRepositories(storage);
   }
 
@@ -49,6 +86,13 @@ class AppController extends ChangeNotifier {
   bool get isSyncingCredits => _isSyncingCredits;
   String? get lastCreditError => _lastCreditError;
   String? get pendingRecoveryCode => _pendingRecoveryCode;
+  bool get isPurchasing => _isPurchasing;
+  String? get billingNotice => _billingNotice;
+
+  /// O preço da loja, quando conhecido, é o que a pessoa realmente pagará.
+  String displayPriceFor(CreditPackage package) =>
+      _storeProducts[package.playProductId]?.displayPrice ??
+      package.displayPrice;
 
   int get creditBalance => _creditCache.cachedBalance;
   bool get isBalanceConfirmed =>
@@ -101,15 +145,13 @@ class AppController extends ChangeNotifier {
       CreditFeatureCost(
         featureId: 'detailed_report',
         title: 'Relatório detalhado',
-        description:
-            'Exportação completa com premissas e série mês a mês.',
+        description: 'Exportação completa com premissas e série mês a mês.',
         creditCost: 2,
       ),
       CreditFeatureCost(
         featureId: 'extended_comparison',
         title: 'Comparação ampliada (3 a 4 cenários)',
-        description:
-            'Comparação estendida com até 4 cenários simultâneos.',
+        description: 'Comparação estendida com até 4 cenários simultâneos.',
         creditCost: 2,
       ),
       CreditFeatureCost(
@@ -171,8 +213,9 @@ class AppController extends ChangeNotifier {
       }
       _repos.saveCreditCache(_creditCache);
 
-      _transactions =
-          await apiClient.fetchTransactions(_creditCache.walletReference);
+      _transactions = await apiClient.fetchTransactions(
+        _creditCache.walletReference,
+      );
       _isOnline = true;
     } catch (e) {
       _isOnline = false;
@@ -284,9 +327,7 @@ class AppController extends ChangeNotifier {
   }
 
   void setFocusGoal(String id) {
-    _goals = _goals
-        .map((g) => g.copyWith(isFocus: g.id == id))
-        .toList();
+    _goals = _goals.map((g) => g.copyWith(isFocus: g.id == id)).toList();
     _repos.saveGoals(_goals);
     notifyListeners();
   }
@@ -346,7 +387,10 @@ class AppController extends ChangeNotifier {
   // --- Monetização / Créditos ---
 
   Future<bool> recoverWallet(String walletRef, String recoveryCode) async {
-    final bal = await apiClient.recoverWallet(walletRef.trim(), recoveryCode.trim());
+    final bal = await apiClient.recoverWallet(
+      walletRef.trim(),
+      recoveryCode.trim(),
+    );
     _creditCache = LocalCreditCache(
       walletReference: bal.walletReference,
       cachedBalance: bal.balance,
@@ -360,7 +404,7 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
-  Future<int> claimRewardedAd() async {
+  Future<RewardClaim> watchRewardedAd() async {
     if (_creditCache.walletReference.isEmpty) {
       await syncCreditsAndCatalog();
     }
@@ -370,18 +414,227 @@ class AppController extends ChangeNotifier {
         'Conecte-se à internet para validar a recompensa de anúncio.',
       );
     }
-    final txRef = 'ad_${_uuid.v4()}';
+
+    final walletRef = _creditCache.walletReference;
+    final rewardReference = _uuid.v4();
+    final status = await ads.showRewarded(
+      userId: walletRef,
+      customData: rewardReference,
+    );
+    switch (status) {
+      case RewardedAdStatus.unavailable:
+        return const RewardClaim(RewardOutcome.unavailable);
+      case RewardedAdStatus.dismissedWithoutReward:
+        return const RewardClaim(RewardOutcome.notEarned);
+      case RewardedAdStatus.earned:
+        break;
+    }
+
+    if (serverVerifiesRewards) {
+      return _awaitServerReward(walletRef, rewardReference);
+    }
+
     final newBalance = await apiClient.claimRewardedAd(
-      walletRef: _creditCache.walletReference,
-      providerTransactionId: txRef,
-      idempotencyKey: _uuid.v4(),
+      walletRef: walletRef,
+      providerTransactionId: 'ad_$rewardReference',
+      idempotencyKey: rewardReference,
       adNetwork: 'admob_test',
     );
     _updateBalanceConfirmed(newBalance);
-    _transactions =
-        await apiClient.fetchTransactions(_creditCache.walletReference);
+    _transactions = await apiClient.fetchTransactions(walletRef);
     notifyListeners();
-    return newBalance;
+    return RewardClaim(RewardOutcome.credited, newBalance);
+  }
+
+  Future<RewardClaim> _awaitServerReward(
+    String walletRef,
+    String rewardReference,
+  ) async {
+    for (var attempt = 0; attempt < rewardPollAttempts; attempt++) {
+      await Future<void>.delayed(rewardPollInterval);
+      final List<LedgerEntry> entries;
+      try {
+        entries = await apiClient.fetchTransactions(walletRef);
+      } on Exception {
+        continue;
+      }
+      if (entries.any((e) => e.idempotencyKey == rewardReference)) {
+        final balance = await apiClient.fetchBalance(walletRef);
+        _updateBalanceConfirmed(balance.balance);
+        _transactions = entries;
+        notifyListeners();
+        return RewardClaim(RewardOutcome.credited, balance.balance);
+      }
+    }
+    return const RewardClaim(RewardOutcome.pendingConfirmation);
+  }
+
+  // --- Google Play Billing ---
+
+  /// Escuta a loja e retoma compras pagas cujo crédito não foi concluído.
+  Future<void> startBilling() async {
+    if (!billing.isSupported || _billingSubscription != null) return;
+    _billingSubscription = billing.purchases.listen(
+      (updates) => unawaited(_handlePurchaseUpdates(updates)),
+      onError: (Object _) => _endPurchaseAttempt(_purchaseFailedNotice),
+    );
+    try {
+      if (!await billing.isAvailable().timeout(storeTimeout)) return;
+      await _loadStoreProducts();
+      await billing.restoreUnfinished().timeout(storeTimeout);
+    } on Exception {
+      // Sem a loja agora: uma nova tentativa ocorre na compra ou ao reabrir o app.
+    }
+  }
+
+  static const String _purchaseFailedNotice =
+      'A compra não foi concluída. Nenhum crédito foi alterado.';
+
+  Future<void> _loadStoreProducts() async {
+    final ids = catalog.packages.map((p) => p.playProductId).toSet();
+    _storeProducts = await billing.loadProducts(ids).timeout(storeTimeout);
+    notifyListeners();
+  }
+
+  Future<void> buyCreditPackage(CreditPackage package) async {
+    if (_creditCache.walletReference.isEmpty) {
+      await syncCreditsAndCatalog();
+    }
+    if (_creditCache.walletReference.isEmpty) {
+      throw const MonetizationApiException(
+        'OFFLINE',
+        'Conecte-se à internet para iniciar a compra de créditos.',
+      );
+    }
+    await startBilling();
+    if (!_storeProducts.containsKey(package.playProductId)) {
+      try {
+        await _loadStoreProducts();
+      } on Exception {
+        // Tratado abaixo: o pacote continua indisponível.
+      }
+    }
+    if (!_storeProducts.containsKey(package.playProductId)) {
+      throw const MonetizationApiException(
+        'BILLING_UNAVAILABLE',
+        'Este pacote não está disponível na Google Play agora.',
+      );
+    }
+
+    _isPurchasing = true;
+    _billingNotice = null;
+    notifyListeners();
+    try {
+      final opened = await billing.buy(
+        productId: package.playProductId,
+        walletRef: _creditCache.walletReference,
+      );
+      if (!opened) _endPurchaseAttempt(_purchaseFailedNotice);
+    } on Exception {
+      _endPurchaseAttempt(_purchaseFailedNotice);
+      // Uma compra anterior ainda não consumida impede uma nova do mesmo item.
+      unawaited(billing.restoreUnfinished().catchError((Object _) {}));
+    }
+  }
+
+  void _endPurchaseAttempt(String? notice) {
+    _isPurchasing = false;
+    _billingNotice = notice;
+    notifyListeners();
+  }
+
+  Future<void> _handlePurchaseUpdates(List<BillingPurchase> updates) async {
+    for (final purchase in updates) {
+      switch (purchase.status) {
+        case BillingPurchaseStatus.pending:
+          _endPurchaseAttempt(_purchasePendingNotice);
+        case BillingPurchaseStatus.canceled:
+          _endPurchaseAttempt(null);
+        case BillingPurchaseStatus.error:
+          _endPurchaseAttempt(_purchaseFailedNotice);
+        case BillingPurchaseStatus.purchased:
+        case BillingPurchaseStatus.restored:
+          await _fulfillPurchase(purchase);
+      }
+    }
+  }
+
+  static const String _purchasePendingNotice =
+      'Pagamento pendente. Os créditos entram assim que a Google Play confirmar.';
+
+  Future<void> _fulfillPurchase(BillingPurchase purchase) async {
+    final token = purchase.purchaseToken;
+    if (!_purchaseTokensInFlight.add(token)) return;
+
+    final accountId = purchase.accountId;
+    final walletRef = accountId != null && accountId.isNotEmpty
+        ? accountId
+        : _creditCache.walletReference;
+    final isNewPurchase = purchase.status == BillingPurchaseStatus.purchased;
+
+    try {
+      if (walletRef.isEmpty) {
+        // Compra fica sem consumir e volta na próxima abertura do app.
+        _endPurchaseAttempt(null);
+        return;
+      }
+
+      final PlayValidationResult result;
+      try {
+        result = await apiClient.validatePlayPurchase(
+          walletRef: walletRef,
+          productId: purchase.productId,
+          purchaseToken: token,
+          orderId: purchase.orderId ?? 'pedido-indisponivel',
+          idempotencyKey: _uuid.v5(Namespace.url.value, token),
+        );
+      } on Exception {
+        _endPurchaseAttempt(
+          isNewPurchase
+              ? 'Pagamento recebido, mas ainda não confirmado. Tentaremos de novo ao reabrir o app.'
+              : null,
+        );
+        return;
+      }
+
+      if (!result.acknowledged) {
+        _endPurchaseAttempt(_purchasePendingNotice);
+        return;
+      }
+
+      // O crédito já foi concedido; se consumir falhar, repete sem conceder de novo.
+      try {
+        await billing.finish(purchase);
+      } on Exception {
+        debugPrint('Consumo da compra será repetido ao reabrir o app.');
+      } on StateError {
+        debugPrint('Consumo da compra será repetido ao reabrir o app.');
+      }
+
+      if (walletRef == _creditCache.walletReference) {
+        _updateBalanceConfirmed(result.balance);
+        try {
+          _transactions = await apiClient.fetchTransactions(walletRef);
+        } on Exception {
+          // O saldo já está confirmado; o extrato atualiza na próxima sincronização.
+        }
+      } else {
+        await syncCreditsAndCatalog();
+      }
+      _endPurchaseAttempt(
+        isNewPurchase
+            ? 'Compra confirmada. Saldo: $creditBalance créditos.'
+            : null,
+      );
+    } finally {
+      _purchaseTokensInFlight.remove(token);
+    }
+  }
+
+  @override
+  void dispose() {
+    _billingSubscription?.cancel();
+    super.dispose();
   }
 
   Future<WebCheckoutSession> initiateWebCheckout(String productId) async {
@@ -420,18 +673,15 @@ class AppController extends ChangeNotifier {
     _updateBalanceConfirmed(ticket.balance);
     notifyListeners();
 
+    final T result;
     try {
-      final result = await action();
+      result = await action();
       final confirmed = await apiClient.confirmReservation(
         walletRef: _creditCache.walletReference,
         reservationId: ticket.reservationId,
         idempotencyKey: _uuid.v4(),
       );
       _updateBalanceConfirmed(confirmed.balance);
-      _transactions =
-          await apiClient.fetchTransactions(_creditCache.walletReference);
-      notifyListeners();
-      return result;
     } catch (err) {
       try {
         final refunded = await apiClient.refundReservation(
@@ -440,12 +690,26 @@ class AppController extends ChangeNotifier {
           idempotencyKey: _uuid.v4(),
         );
         _updateBalanceConfirmed(refunded.balance);
-        _transactions =
-            await apiClient.fetchTransactions(_creditCache.walletReference);
+        _transactions = await apiClient.fetchTransactions(
+          _creditCache.walletReference,
+        );
         notifyListeners();
       } catch (_) {}
       rethrow;
     }
+
+    // O uso já foi confirmado: falha ao atualizar o extrato não pode virar erro
+    // nem estorno (o servidor recusaria, e a pessoa já recebeu o recurso).
+    notifyListeners();
+    try {
+      _transactions = await apiClient.fetchTransactions(
+        _creditCache.walletReference,
+      );
+      notifyListeners();
+    } on Exception {
+      // O extrato é atualizado na próxima sincronização.
+    }
+    return result;
   }
 
   void _updateBalanceConfirmed(int balance) {

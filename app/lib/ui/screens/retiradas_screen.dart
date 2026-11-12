@@ -8,6 +8,7 @@ import '../../domain/models/simulation_models.dart';
 import '../../domain/rules/formatters.dart';
 import '../../domain/validation/input_validators.dart';
 import '../theme/meta_feita_theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/cards.dart';
 import '../widgets/chart_card.dart';
 import '../widgets/inputs.dart';
@@ -18,11 +19,7 @@ class RetiradasScreen extends StatefulWidget {
   final AppController controller;
   final VoidCallback? onBack;
 
-  const RetiradasScreen({
-    super.key,
-    required this.controller,
-    this.onBack,
-  });
+  const RetiradasScreen({super.key, required this.controller, this.onBack});
 
   @override
   State<RetiradasScreen> createState() => _RetiradasScreenState();
@@ -75,7 +72,9 @@ class _RetiradasScreenState extends State<RetiradasScreen>
     if (cap == null) errors['initialCapital'] = 'Capital inválido.';
     if (ret == null) errors['withdrawalAmount'] = 'Valor de retirada inválido.';
     if (taxa == null) errors['rate'] = 'Taxa inválida.';
-    if (_adjustInflation && inf == null) errors['inflationRate'] = 'Inflação inválida.';
+    if (_adjustInflation && inf == null) {
+      errors['inflationRate'] = 'Inflação inválida.';
+    }
     if (term == null) errors['termMonths'] = 'Prazo inválido.';
 
     if (errors.isNotEmpty) {
@@ -165,8 +164,10 @@ class _RetiradasScreenState extends State<RetiradasScreen>
                       icon: const MetaFeitaIcon(MfIcon.voltar, size: 22),
                     ),
                   Expanded(
-                    child:
-                        Text('Simulador de retiradas', style: MfText.subtitulo),
+                    child: Text(
+                      'Simulador de retiradas',
+                      style: MfText.subtitulo,
+                    ),
                   ),
                 ],
               ),
@@ -191,11 +192,17 @@ class _RetiradasScreenState extends State<RetiradasScreen>
                 value: _freq,
                 options: const [
                   SegmentedChoiceOption(
-                      value: ContributionFrequency.monthly, label: 'Mensal'),
+                    value: ContributionFrequency.monthly,
+                    label: 'Mensal',
+                  ),
                   SegmentedChoiceOption(
-                      value: ContributionFrequency.quarterly, label: 'Trimestral'),
+                    value: ContributionFrequency.quarterly,
+                    label: 'Trimestral',
+                  ),
                   SegmentedChoiceOption(
-                      value: ContributionFrequency.annual, label: 'Anual'),
+                    value: ContributionFrequency.annual,
+                    label: 'Anual',
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() => _freq = v);
@@ -208,10 +215,13 @@ class _RetiradasScreenState extends State<RetiradasScreen>
                 value: _timing,
                 options: const [
                   SegmentedChoiceOption(
-                      value: ContributionTiming.beginning,
-                      label: 'No início do mês'),
+                    value: ContributionTiming.beginning,
+                    label: 'No início do mês',
+                  ),
                   SegmentedChoiceOption(
-                      value: ContributionTiming.end, label: 'No fim do mês'),
+                    value: ContributionTiming.end,
+                    label: 'No fim do mês',
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() => _timing = v);
@@ -245,7 +255,10 @@ class _RetiradasScreenState extends State<RetiradasScreen>
               const SizedBox(height: 10),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: Text('Corrigir retiradas pela inflação', style: MfText.rotulo),
+                title: Text(
+                  'Corrigir retiradas pela inflação',
+                  style: MfText.rotulo,
+                ),
                 activeThumbColor: MfColors.petroleo,
                 value: _adjustInflation,
                 onChanged: (v) {
@@ -271,8 +284,9 @@ class _RetiradasScreenState extends State<RetiradasScreen>
                     children: [
                       Text(
                         'SALDO FINAL AO TÉRMINO DO PRAZO',
-                        style: MfText.legenda
-                            .copyWith(color: MfColors.azulRioClaro),
+                        style: MfText.legenda.copyWith(
+                          color: MfColors.azulRioClaro,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -312,19 +326,27 @@ class _RetiradasScreenState extends State<RetiradasScreen>
                       const SizedBox(height: 14),
                       Divider(color: Colors.white.withValues(alpha: 0.14)),
                       const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Total efetivamente sacado',
-                            style: MfText.pequeno
-                                .copyWith(color: MfColors.nevoaClaro),
-                          ),
-                          Text(
-                            PtBrFormatters.money(res.totalWithdrawn),
-                            style: MfText.rotulo.copyWith(color: Colors.white),
-                          ),
-                        ],
+                      SizedBox(
+                        width: double.infinity,
+                        child: Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          spacing: 12,
+                          runSpacing: 2,
+                          children: [
+                            Text(
+                              'Total efetivamente sacado',
+                              style: MfText.pequeno.copyWith(
+                                color: MfColors.nevoaClaro,
+                              ),
+                            ),
+                            Text(
+                              PtBrFormatters.money(res.totalWithdrawn),
+                              style: MfText.rotulo.copyWith(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -337,8 +359,12 @@ class _RetiradasScreenState extends State<RetiradasScreen>
                     ChartSeriesData(
                       label: 'Saldo restante',
                       spots: res.series
-                          .map((p) => FlSpot(p.periodIndex.toDouble(),
-                              p.endingBalance.toDouble()))
+                          .map(
+                            (p) => FlSpot(
+                              p.periodIndex.toDouble(),
+                              p.endingBalance.toDouble(),
+                            ),
+                          )
                           .toList(),
                       color: MfColors.petroleo,
                       fillArea: true,
@@ -347,6 +373,7 @@ class _RetiradasScreenState extends State<RetiradasScreen>
                   ],
                 ),
                 const SizedBox(height: 14),
+                SafeAdBannerSlot(ads: widget.controller.ads),
                 AssumptionDisclosure(assumptions: res.assumptions),
               ],
             ],
@@ -367,4 +394,3 @@ class _RetiradasScreenState extends State<RetiradasScreen>
     );
   }
 }
-

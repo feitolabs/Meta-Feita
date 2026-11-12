@@ -18,7 +18,8 @@ class RetirementEngine {
       errors['targetAge'] = 'A idade-alvo deve ser maior que a idade atual.';
     } else if ((input.targetAge - input.currentAge) * 12 >
         InputValidators.maxTermMonths) {
-      errors['targetAge'] = 'Horizonte de acumulação excede o limite suportado.';
+      errors['targetAge'] =
+          'Horizonte de acumulação excede o limite suportado.';
     }
     if (input.withdrawalYears <= 0 || input.withdrawalYears > 80) {
       errors['withdrawalYears'] =
@@ -69,9 +70,13 @@ class RetirementEngine {
       ),
     );
 
-    final monthlyInflation = RateConverter.toEffectiveMonthly(input.inflationRate);
-    final cumInflationFactor =
-        DecimalMath.powInt(Decimal.one + monthlyInflation, accMonths);
+    final monthlyInflation = RateConverter.toEffectiveMonthly(
+      input.inflationRate,
+    );
+    final cumInflationFactor = DecimalMath.powInt(
+      Decimal.one + monthlyInflation,
+      accMonths,
+    );
     final realCapital = cumInflationFactor <= Decimal.zero
         ? Decimal.zero
         : DecimalMath.moneyRound(
@@ -96,8 +101,9 @@ class RetirementEngine {
     );
 
     final gap = DecimalMath.moneyRound(requiredRealCorpus - realCapital);
-    final requiredNominalAtRetirement =
-        DecimalMath.roundInternal(requiredRealCorpus * cumInflationFactor);
+    final requiredNominalAtRetirement = DecimalMath.roundInternal(
+      requiredRealCorpus * cumInflationFactor,
+    );
 
     Decimal? requiredContribution;
     if (gap <= Decimal.zero) {
@@ -145,7 +151,8 @@ class RetirementEngine {
               termMonths: accMonths,
             ),
           ).finalValue;
-          if ((vf - requiredNominalAtRetirement).abs() <= Decimal.parse('0.01') ||
+          if ((vf - requiredNominalAtRetirement).abs() <=
+                  Decimal.parse('0.01') ||
               (high - low) <= Decimal.parse('0.001')) {
             requiredContribution = DecimalMath.moneyRound(mid);
             break;
@@ -175,7 +182,8 @@ class RetirementEngine {
       assumptions: {
         'Horizonte de acumulação':
             '${input.currentAge} aos ${input.targetAge} anos ($accMonths meses)',
-        'Horizonte de retiradas': '${input.withdrawalYears} anos ($retMonths meses)',
+        'Horizonte de retiradas':
+            '${input.withdrawalYears} anos ($retMonths meses)',
         'Retorno nominal': input.nominalRate.describePt(),
         'Inflação': input.inflationRate.describePt(),
         'Aviso':
@@ -223,4 +231,3 @@ class RetirementEngine {
     return DecimalMath.moneyRound(DecimalMath.div(numerator, denom));
   }
 }
-

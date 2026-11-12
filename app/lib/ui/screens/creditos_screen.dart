@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 
 import '../../application/app_controller.dart';
 import '../../domain/models/credit_models.dart';
-import '../../infrastructure/ads/ad_service.dart';
 import '../theme/meta_feita_theme.dart';
 import '../widgets/cards.dart';
 import '../widgets/credit_cost_dialog.dart';
@@ -15,11 +14,7 @@ class CreditosScreen extends StatefulWidget {
   final AppController controller;
   final VoidCallback? onBack;
 
-  const CreditosScreen({
-    super.key,
-    required this.controller,
-    this.onBack,
-  });
+  const CreditosScreen({super.key, required this.controller, this.onBack});
 
   @override
   State<CreditosScreen> createState() => _CreditosScreenState();
@@ -46,6 +41,8 @@ class _CreditosScreenState extends State<CreditosScreen> {
     final c = widget.controller;
     final catalog = c.catalog;
     final selectedPkg = _resolveSelectedPackage(catalog);
+    final canBuy = c.billing.isSupported || kIsWeb;
+    final busy = _busyAction || c.isPurchasing;
     final cache = c.creditCache;
     final confirmedTime = cache.lastValidatedAt;
     final timeStr = confirmedTime != null
@@ -65,16 +62,21 @@ class _CreditosScreenState extends State<CreditosScreen> {
               ),
             Expanded(child: Text('Créditos', style: MfText.titulo)),
             TextButton.icon(
-              onPressed: c.isSyncingCredits ? null : () => c.syncCreditsAndCatalog(),
+              onPressed: c.isSyncingCredits
+                  ? null
+                  : () => c.syncCreditsAndCatalog(),
               icon: const MetaFeitaIcon(MfIcon.online, size: 18),
-              label: Text(c.isSyncingCredits ? 'Sincronizando...' : 'Atualizar'),
+              label: Text(
+                c.isSyncingCredits ? 'Sincronizando...' : 'Atualizar',
+              ),
             ),
           ],
         ),
         if (!c.isOnline) ...[
           const SizedBox(height: 10),
           OfflineNoticeBanner(
-            message: c.lastCreditError ??
+            message:
+                c.lastCreditError ??
                 'Sem conexão com o servidor de créditos. Mostrando cache local offline.',
           ),
         ],
@@ -84,61 +86,67 @@ class _CreditosScreenState extends State<CreditosScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'SEU SALDO',
-                    style: MfText.legenda.copyWith(color: MfColors.azulRioClaro),
-                  ),
-                  if (cache.walletReference.isNotEmpty)
-                    InkWell(
-                      onTap: () {
-                        Clipboard.setData(
-                          ClipboardData(text: cache.walletReference),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('ID da carteira copiado.'),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        'ID: ${cache.walletReference.substring(0, cache.walletReference.length.clamp(0, 10))}…',
-                        style: MfText.pequeno.copyWith(
-                          color: MfColors.nevoaClaro,
-                          decoration: TextDecoration.underline,
-                        ),
+              SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 12,
+                  runSpacing: 2,
+                  children: [
+                    Text(
+                      'SEU SALDO',
+                      style: MfText.legenda.copyWith(
+                        color: MfColors.azulRioClaro,
                       ),
                     ),
-                ],
+                    if (cache.walletReference.isNotEmpty)
+                      InkWell(
+                        onTap: () {
+                          Clipboard.setData(
+                            ClipboardData(text: cache.walletReference),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('ID da carteira copiado.'),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'ID: ${cache.walletReference.substring(0, cache.walletReference.length.clamp(0, 10))}…',
+                          style: MfText.pequeno.copyWith(
+                            color: MfColors.nevoaClaro,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '${c.creditBalance}',
-                    style: MfText.numero.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    c.creditBalance == 1 ? 'crédito' : 'créditos',
-                    style: MfText.subtitulo.copyWith(
-                      color: MfColors.nevoaClaro,
-                      fontWeight: FontWeight.w600,
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '${c.creditBalance}',
+                      style: MfText.numero.copyWith(color: Colors.white),
                     ),
-                  ),
-                ],
+                    TextSpan(
+                      text: c.creditBalance == 1 ? ' crédito' : ' créditos',
+                      style: MfText.subtitulo.copyWith(
+                        color: MfColors.nevoaClaro,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 c.isBalanceConfirmed
                     ? 'Confirmado pelo servidor${timeStr != null ? ' às $timeStr' : ''}'
                     : (timeStr != null
-                        ? 'Cache local (offline) · última confirmação às $timeStr'
-                        : 'Aguardando confirmação online para usar recursos pagos'),
+                          ? 'Cache local (offline) · última confirmação às $timeStr'
+                          : 'Aguardando confirmação online para usar recursos pagos'),
                 style: MfText.pequeno.copyWith(
                   color: MfColors.nevoaClaro,
                   fontSize: 13.5,
@@ -170,6 +178,7 @@ class _CreditosScreenState extends State<CreditosScreen> {
         for (final pkg in catalog.packages) ...[
           _PackageOptionCard(
             package: pkg,
+            displayPrice: c.displayPriceFor(pkg),
             selected: pkg.productId == selectedPkg.productId,
             onTap: () => setState(() => _selectedPackageId = pkg.productId),
           ),
@@ -178,16 +187,20 @@ class _CreditosScreenState extends State<CreditosScreen> {
         const SizedBox(height: 6),
         BrasaPrimaryButton(
           label: 'Comprar ${selectedPkg.credits} créditos',
-          isLoading: _busyAction,
-          onPressed: _busyAction ? null : () => _startPurchase(selectedPkg),
+          isLoading: busy,
+          onPressed: busy || !canBuy ? null : () => _startPurchase(selectedPkg),
         ),
-        if (catalog.rewardedAd.enabled) ...[
+        if (c.billingNotice != null) ...[
+          const SizedBox(height: 10),
+          OfflineNoticeBanner(message: c.billingNotice!),
+        ],
+        if (catalog.rewardedAd.enabled && c.ads.isSupported) ...[
           const SizedBox(height: 10),
           ContornoButton(
             label:
                 'Assistir anúncio e ganhar ${catalog.rewardedAd.creditsPerView} crédito${catalog.rewardedAd.creditsPerView == 1 ? '' : 's'}',
             leadingIcon: const MetaFeitaIcon(MfIcon.anuncio, size: 18),
-            onPressed: _busyAction ? null : _watchRewardedAd,
+            onPressed: busy ? null : _watchRewardedAd,
           ),
         ],
         const SizedBox(height: 10),
@@ -257,7 +270,8 @@ class _CreditosScreenState extends State<CreditosScreen> {
                   showCreditCostConfirmationDialog(
                     context,
                     featureTitle: 'Relatório detalhado (exemplo)',
-                    creditCost: catalog.findFeature('detailed_report')?.creditCost ?? 2,
+                    creditCost:
+                        catalog.findFeature('detailed_report')?.creditCost ?? 2,
                     currentBalance: c.creditBalance,
                   );
                 },
@@ -300,11 +314,19 @@ class _CreditosScreenState extends State<CreditosScreen> {
 
     setState(() => _busyAction = true);
     try {
-      final session = await widget.controller.initiateWebCheckout(pkg.productId);
+      if (widget.controller.billing.isSupported) {
+        await widget.controller.buyCreditPackage(pkg);
+        return;
+      }
+
+      final session = await widget.controller.initiateWebCheckout(
+        pkg.productId,
+      );
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
+          scrollable: true,
           title: Text('Checkout iniciado', style: MfText.tituloCartao),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -324,9 +346,7 @@ class _CreditosScreenState extends State<CreditosScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: SelectableText(
-                  kIsWeb
-                      ? 'Checkout ID: ${session.checkoutId}\nURL: ${session.checkoutUrl}'
-                      : 'Produto Google Play: ${pkg.playProductId}\nSessão web alternativa: ${session.checkoutUrl}',
+                  'Checkout ID: ${session.checkoutId}\nURL: ${session.checkoutUrl}',
                   style: MfText.pequeno,
                 ),
               ),
@@ -354,9 +374,9 @@ class _CreditosScreenState extends State<CreditosScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _busyAction = false);
     }
@@ -377,12 +397,11 @@ class _CreditosScreenState extends State<CreditosScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Anúncio premiado', style: MfText.tituloCartao),
         content: Text(
           'Deseja exibir o anúncio premiado para ganhar ${widget.controller.catalog.rewardedAd.creditsPerView} crédito(s)?\n\n'
           'Limite diário: ${widget.controller.catalog.rewardedAd.dailyLimit} por dia. '
-          'Unidade configurada: ${AdService.currentRewardedUnitId()}'
-          '${AdService.isUsingTestIds ? ' (modo teste)' : ''}. '
           'Nenhum valor financeiro seu é enviado ao provedor de anúncios.',
           style: MfText.corpo,
         ),
@@ -402,18 +421,26 @@ class _CreditosScreenState extends State<CreditosScreen> {
 
     setState(() => _busyAction = true);
     try {
-      final newBal = await widget.controller.claimRewardedAd();
+      final claim = await widget.controller.watchRewardedAd();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Recompensa confirmada pelo servidor. Saldo: $newBal créditos.'),
-        ),
-      );
+      final message = switch (claim.outcome) {
+        RewardOutcome.credited =>
+          'Recompensa confirmada pelo servidor. Saldo: ${claim.balance} créditos.',
+        RewardOutcome.pendingConfirmation =>
+          'Anúncio concluído. O crédito aparece em instantes; toque em Atualizar.',
+        RewardOutcome.notEarned =>
+          'O anúncio foi fechado antes do fim. Nenhum crédito foi concedido.',
+        RewardOutcome.unavailable =>
+          'Nenhum anúncio disponível agora. Tente novamente mais tarde.',
+      };
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _busyAction = false);
     }
@@ -430,6 +457,7 @@ class _CreditosScreenState extends State<CreditosScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
+          scrollable: true,
           title: Text('Recuperar carteira', style: MfText.tituloCartao),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -474,7 +502,9 @@ class _CreditosScreenState extends State<CreditosScreen> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Carteira recuperada e saldo sincronizado.'),
+                        content: Text(
+                          'Carteira recuperada e saldo sincronizado.',
+                        ),
                       ),
                     );
                   }
@@ -493,11 +523,13 @@ class _CreditosScreenState extends State<CreditosScreen> {
 
 class _PackageOptionCard extends StatelessWidget {
   final CreditPackage package;
+  final String displayPrice;
   final bool selected;
   final VoidCallback onTap;
 
   const _PackageOptionCard({
     required this.package,
+    required this.displayPrice,
     required this.selected,
     required this.onTap,
   });
@@ -507,8 +539,9 @@ class _PackageOptionCard extends StatelessWidget {
     return LightCard(
       onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      backgroundColor:
-          selected ? MfColors.areiaCard : MfColors.areiaCard.withValues(alpha: 0.72),
+      backgroundColor: selected
+          ? MfColors.areiaCard
+          : MfColors.areiaCard.withValues(alpha: 0.72),
       borderColor: selected ? MfColors.petroleo : MfColors.border,
       child: Row(
         children: [
@@ -558,10 +591,7 @@ class _PackageOptionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            package.displayPrice,
-            style: MfText.tituloCartao.copyWith(fontSize: 18),
-          ),
+          Text(displayPrice, style: MfText.tituloCartao.copyWith(fontSize: 18)),
         ],
       ),
     );
@@ -601,9 +631,7 @@ class _LedgerRow extends StatelessWidget {
         ),
         Text(
           '${positive ? '+' : ''}${entry.creditDelta}',
-          style: MfText.tituloCartao.copyWith(
-            color: MfColors.petroleo,
-          ),
+          style: MfText.tituloCartao.copyWith(color: MfColors.petroleo),
         ),
       ],
     );

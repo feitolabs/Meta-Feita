@@ -1,7 +1,45 @@
+import java.io.FileInputStream
+import java.util.Base64
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
+}
+
+// App ID oficial de teste do Google. O ID real vem de --dart-define-from-file.
+val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
+val dartDefines: Map<String, String> = (project.findProperty("dart-defines") as String?)
+    ?.split(",")
+    ?.filter { it.isNotBlank() }
+    ?.map { String(Base64.getDecoder().decode(it), Charsets.UTF_8) }
+    ?.filter { it.contains("=") }
+    ?.associate { it.substringBefore("=") to it.substringAfter("=") }
+    ?: emptyMap()
+val admobAppId = dartDefines["ADMOB_APP_ID_ANDROID"]?.takeIf { it.isNotBlank() } ?: admobTestAppId
+
+// O .aab é o único artefato que vai para a loja: não pode sair com chave de debug nem IDs de teste.
+val isStoreBundleBuild = gradle.startParameter.taskNames.any {
+    it.contains("bundleRelease", ignoreCase = true)
+}
+if (isStoreBundleBuild) {
+    if (!keystorePropertiesFile.exists()) {
+        throw GradleException(
+            "android/key.properties não encontrado. Rode scripts/create_keystore.ps1 antes de gerar o .aab."
+        )
+    }
+    if (admobAppId == admobTestAppId) {
+        throw GradleException(
+            "ADMOB_APP_ID_ANDROID ausente. Gere o .aab com scripts/build_release.ps1."
+        )
+    }
 }
 
 android {
@@ -15,11 +53,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.feitolabs.meta_feita"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -27,13 +64,34 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["admobAppId"] = admobAppId
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Sem key.properties, usa a chave de debug só para testar o APK localmente.
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

@@ -34,9 +34,7 @@ class BrasaPrimaryButton extends StatelessWidget {
         onTap: enabled ? onPressed : null,
         borderRadius: BorderRadius.circular(radius),
         child: Container(
-          constraints: BoxConstraints(
-            minHeight: compactPill ? 44 : 56,
-          ),
+          constraints: BoxConstraints(minHeight: compactPill ? 44 : 56),
           padding: EdgeInsets.symmetric(
             horizontal: compactPill ? 18 : 24,
             vertical: compactPill ? 10 : 14,
@@ -52,8 +50,7 @@ class BrasaPrimaryButton extends StatelessWidget {
                   ),
                 )
               : Row(
-                  mainAxisSize:
-                      fullWidth ? MainAxisSize.max : MainAxisSize.min,
+                  mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (leadingIcon != null) ...[
@@ -167,8 +164,9 @@ class ContornoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor =
-        lightOnDark ? MfColors.nevoaClaro : MfColors.borderStrong;
+    final borderColor = lightOnDark
+        ? MfColors.nevoaClaro
+        : MfColors.borderStrong;
     final fgColor = lightOnDark ? MfColors.areia : MfColors.petroleo;
 
     final button = Material(
@@ -217,4 +215,3 @@ class ContornoButton extends StatelessWidget {
     return fullWidth ? SizedBox(width: double.infinity, child: button) : button;
   }
 }
-

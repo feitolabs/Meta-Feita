@@ -18,7 +18,15 @@ def generate_recovery_code() -> tuple[str, str, str]:
 
 
 def normalize_recovery_code(code: str) -> str:
-    return code.strip().upper().replace(" ", "")
+    """Forma canônica XXXX-XXXX-XXXX, aceitando minúsculas, espaços e hífens (ou nenhum).
+
+    O hash guardado foi calculado sobre a forma canônica, então códigos já emitidos
+    continuam válidos.
+    """
+    compact = "".join(ch for ch in code.upper() if ch.isalnum())
+    if len(compact) == 12:
+        return f"{compact[0:4]}-{compact[4:8]}-{compact[8:12]}"
+    return compact
 
 
 def hash_recovery_code(code: str, salt: str) -> str:

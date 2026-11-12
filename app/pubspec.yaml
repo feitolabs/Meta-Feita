@@ -21,6 +21,9 @@ dependencies:
   file_picker: ^13.3.2
   share_plus: ^13.3.1
   path_provider: ^2.1.6
+  google_mobile_ads: ^9.2.0
+  in_app_purchase: ^3.3.1
+  in_app_purchase_android: ^0.5.5
 
 dev_dependencies:
   flutter_test:

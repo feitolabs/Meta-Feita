@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../domain/models/credit_models.dart';
@@ -43,6 +44,18 @@ class BalanceValidationResult {
   });
 }
 
+class PlayValidationResult {
+  final int balance;
+
+  /// Verdadeiro somente quando a compra está paga e os créditos foram concedidos.
+  final bool acknowledged;
+
+  const PlayValidationResult({
+    required this.balance,
+    required this.acknowledged,
+  });
+}
+
 class WebCheckoutSession {
   final String checkoutId;
   final String productId;
@@ -82,7 +95,10 @@ class ReservationTicket {
 abstract class MonetizationClient {
   Future<CreditCatalog> fetchCatalog();
   Future<WalletInitResult> initWallet();
-  Future<BalanceValidationResult> recoverWallet(String walletRef, String recoveryCode);
+  Future<BalanceValidationResult> recoverWallet(
+    String walletRef,
+    String recoveryCode,
+  );
   Future<BalanceValidationResult> fetchBalance(String walletRef);
   Future<List<LedgerEntry>> fetchTransactions(String walletRef);
   Future<ReservationTicket> reserveCredits({
@@ -104,7 +120,7 @@ abstract class MonetizationClient {
     required String walletRef,
     required String productId,
   });
-  Future<int> validatePlayPurchase({
+  Future<PlayValidationResult> validatePlayPurchase({
     required String walletRef,
     required String productId,
     required String purchaseToken,
@@ -138,21 +154,47 @@ class HttpMonetizationApiClient implements MonetizationClient {
   HttpMonetizationApiClient({
     String? baseUrl,
     http.Client? client,
-    this.timeout = const Duration(seconds: 6),
-  })  : baseUrl = (baseUrl ?? defaultBaseUrl).replaceAll(RegExp(r'/+$'), ''),
-        _http = client ?? http.Client();
+    this.timeout = const Duration(seconds: 15),
+  }) : baseUrl = (baseUrl ?? defaultBaseUrl).replaceAll(RegExp(r'/+$'), ''),
+       _http = client ?? http.Client();
 
-  Uri _uri(String path) => Uri.parse('$baseUrl$path');
+  Uri _uri(String path) {
+    if (kReleaseMode && !baseUrl.startsWith('https://')) {
+      throw const MonetizationApiException(
+        'INSECURE_API_URL',
+        'Serviço de créditos sem conexão segura configurada.',
+      );
+    }
+    return Uri.parse('$baseUrl$path');
+  }
 
   Map<String, dynamic> _decodeResponse(http.Response res) {
-    final decoded = jsonDecode(res.body);
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(res.body);
+    } on FormatException {
+      // Erro do proxy ou da hospedagem (HTML ou texto), não do serviço de créditos.
+      throw MonetizationApiException(
+        'HTTP_${res.statusCode}',
+        'O serviço de créditos está indisponível no momento. Tente novamente em instantes.',
+        res.statusCode,
+      );
+    }
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      return Map<String, dynamic>.from(decoded as Map);
+      if (decoded is! Map) {
+        throw MonetizationApiException(
+          'BAD_RESPONSE',
+          'Resposta inesperada do serviço de créditos.',
+          res.statusCode,
+        );
+      }
+      return Map<String, dynamic>.from(decoded);
     }
     if (decoded is Map) {
       throw MonetizationApiException(
         decoded['code']?.toString() ?? 'HTTP_${res.statusCode}',
-        decoded['message']?.toString() ?? 'Erro de comunicação com o serviço de créditos.',
+        decoded['message']?.toString() ??
+            'Erro de comunicação com o serviço de créditos.',
         res.statusCode,
       );
     }
@@ -339,7 +381,7 @@ class HttpMonetizationApiClient implements MonetizationClient {
   }
 
   @override
-  Future<int> validatePlayPurchase({
+  Future<PlayValidationResult> validatePlayPurchase({
     required String walletRef,
     required String productId,
     required String purchaseToken,
@@ -359,9 +401,12 @@ class HttpMonetizationApiClient implements MonetizationClient {
             'idempotencyKey': idempotencyKey,
           }),
         )
-        .timeout(timeout);
+        .timeout(const Duration(seconds: 30));
     final data = _decodeResponse(res);
-    return data['balance'] as int;
+    return PlayValidationResult(
+      balance: data['balance'] as int,
+      acknowledged: data['acknowledged'] as bool,
+    );
   }
 
   @override

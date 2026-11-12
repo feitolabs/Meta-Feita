@@ -39,7 +39,10 @@ class PrivacidadeScreen extends StatelessWidget {
                 style: MfText.corpo,
               ),
               const SizedBox(height: 18),
-              Text('O que vai para o servidor de créditos', style: MfText.tituloCartao),
+              Text(
+                'O que vai para o servidor de créditos',
+                style: MfText.tituloCartao,
+              ),
               const SizedBox(height: 8),
               Text(
                 'Quando você está conectado e utiliza o sistema de créditos, o servidor armazena apenas:\n'
@@ -49,10 +52,22 @@ class PrivacidadeScreen extends StatelessWidget {
                 style: MfText.corpo,
               ),
               const SizedBox(height: 18),
-              Text('Publicidade sem perfilamento financeiro', style: MfText.tituloCartao),
+              Text(
+                'Publicidade sem perfilamento financeiro',
+                style: MfText.tituloCartao,
+              ),
               const SizedBox(height: 8),
               Text(
-                'Os anúncios opcionais exibidos pelo aplicativo não recebem capital inicial, aportes, metas, taxas ou resultados das suas simulações.',
+                'No Android, o app exibe anúncios do Google AdMob. Eles não recebem capital inicial, aportes, metas, taxas ou resultados das suas simulações. '
+                'O Google pode tratar o identificador de publicidade do aparelho e dados técnicos para exibir e medir anúncios, conforme as escolhas feitas no aviso de consentimento. '
+                'Quando exigido na sua região, você pode rever essas escolhas em Configurações.',
+                style: MfText.corpo,
+              ),
+              const SizedBox(height: 18),
+              Text('Compras', style: MfText.tituloCartao),
+              const SizedBox(height: 8),
+              Text(
+                'No Android, os pagamentos são processados pela Google Play. O Meta Feita recebe apenas o comprovante da compra para liberar os créditos e não tem acesso aos dados do seu cartão.',
                 style: MfText.corpo,
               ),
               const SizedBox(height: 18),
@@ -97,7 +112,10 @@ class TermosScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Finalidade educacional e simulatória', style: MfText.tituloCartao),
+              Text(
+                'Finalidade educacional e simulatória',
+                style: MfText.tituloCartao,
+              ),
               const SizedBox(height: 8),
               Text(
                 'O Meta Feita é uma ferramenta de cálculo e planejamento financeiro baseada estritamente nos números e premissas informados por você. '
@@ -120,6 +138,7 @@ class TermosScreen extends StatelessWidget {
               Text(
                 'Todas as calculadoras essenciais funcionam gratuitamente e offline. '
                 'Recursos avançados consomem créditos obtidos por compra única (sem assinatura ou cobrança recorrente) ou por anúncio premiado. '
+                'No Android, as compras são feitas pela Google Play e seguem as regras de reembolso da loja. '
                 'Sempre exibimos o custo antes da confirmação e estornamos reservas caso uma ação falhe antes de concluir.',
                 style: MfText.corpo,
               ),
@@ -138,4 +157,3 @@ class TermosScreen extends StatelessWidget {
     );
   }
 }
-

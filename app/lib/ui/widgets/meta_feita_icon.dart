@@ -94,4 +94,3 @@ class MetaFeitaLogo extends StatelessWidget {
     );
   }
 }
-

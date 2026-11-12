@@ -57,8 +57,8 @@ class _MfLabeledFieldState extends State<MfLabeledField> {
     final borderColor = hasError
         ? MfColors.erro
         : _hasFocus
-            ? MfColors.azulRio
-            : MfColors.borderStrong;
+        ? MfColors.azulRio
+        : MfColors.borderStrong;
     final borderWidth = (_hasFocus || hasError) ? 1.8 : 1.1;
 
     return Semantics(
@@ -76,52 +76,79 @@ class _MfLabeledFieldState extends State<MfLabeledField> {
               border: Border.all(color: borderColor, width: borderWidth),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            child: Row(
-              children: [
-                if (widget.prefixText != null) ...[
-                  Text(
-                    widget.prefixText!,
-                    style: MfText.corpo.copyWith(
-                      color: MfColors.inkMuted,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Expanded(
-                  child: TextField(
-                    focusNode: _focusNode,
-                    controller: widget.controller,
-                    keyboardType: widget.keyboardType,
-                    inputFormatters: widget.inputFormatters,
-                    onChanged: widget.onChanged,
-                    style: MfText.corpo.copyWith(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: MfColors.petroleo,
-                    ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: widget.hintText,
-                      hintStyle: MfText.corpo.copyWith(
-                        color: MfColors.inkMuted.withValues(alpha: 0.45),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Prefixo e sufixo ocupam o que precisarem, preservando
+                // uma largura mínima para o valor digitado.
+                const minFieldWidth = 72.0;
+                final affixCount =
+                    (widget.prefixText != null ? 1 : 0) +
+                    (widget.suffixText != null ? 1 : 0);
+                final maxAffixWidth = affixCount == 0
+                    ? 0.0
+                    : ((constraints.maxWidth - minFieldWidth - 8 * affixCount) /
+                              affixCount)
+                          .clamp(0.0, double.infinity);
+                return Row(
+                  children: [
+                    if (widget.prefixText != null) ...[
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxAffixWidth),
+                        child: Text(
+                          widget.prefixText!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: MfText.corpo.copyWith(
+                            color: MfColors.inkMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      child: TextField(
+                        focusNode: _focusNode,
+                        controller: widget.controller,
+                        keyboardType: widget.keyboardType,
+                        inputFormatters: widget.inputFormatters,
+                        onChanged: widget.onChanged,
+                        style: MfText.corpo.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: MfColors.petroleo,
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: widget.hintText,
+                          hintStyle: MfText.corpo.copyWith(
+                            color: MfColors.inkMuted.withValues(alpha: 0.45),
+                          ),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                if (widget.suffixText != null) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.suffixText!,
-                    style: MfText.pequeno.copyWith(
-                      color: MfColors.inkMuted,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ],
+                    if (widget.suffixText != null) ...[
+                      const SizedBox(width: 8),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxAffixWidth),
+                        child: Text(
+                          widget.suffixText!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: MfText.pequeno.copyWith(
+                            color: MfColors.inkMuted,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
           if (hasError) ...[
@@ -168,9 +195,7 @@ class MoneyInput extends StatelessWidget {
       hintText: hintText,
       errorText: errorText,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-      ],
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
       onChanged: onChanged,
     );
   }
@@ -314,8 +339,9 @@ class SegmentedChoice<T> extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: MfText.bodyFamily,
-                          fontWeight:
-                              selected ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                           fontSize: 14,
                           color: selected ? MfColors.areia : MfColors.petroleo,
                         ),
@@ -374,8 +400,9 @@ class FrequencySelector<T> extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
-                      color:
-                          selected ? MfColors.petroleo : MfColors.borderStrong,
+                      color: selected
+                          ? MfColors.petroleo
+                          : MfColors.borderStrong,
                       width: 1.1,
                     ),
                   ),
@@ -397,4 +424,3 @@ class FrequencySelector<T> extends StatelessWidget {
     );
   }
 }
-

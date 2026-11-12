@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Configuracao de producao (IDs reais do AdMob e URL do backend)
+config/release.json

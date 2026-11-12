@@ -37,4 +37,7 @@ Este arquivo documenta as decisões de arquitetura, bibliotecas e definições d
 6. **Catálogo de créditos e preços**: Configurado em `backend/catalog.json` (versionado e substituível por ambiente), nunca hardcoded de forma arbitrária na interface.
 7. **Recuperação de carteira anônima**: Ao criar uma carteira pseudônima (`walletReference`), o cliente gera localmente ou solicita código de recuperação exibido uma única vez; o backend armazena apenas o hash PBKDF2-HMAC-SHA256 desse código, sem dados financeiros nem senhas em código-fonte.
 8. **Anúncios e pagamentos**: IDs de teste oficiais no ambiente de desenvolvimento; adaptadores desacoplados para Google Play Billing e provedor de checkout Web com validação HMAC via webhook.
+9. **Recompensa de anúncio em produção**: o crédito só é concedido pelo callback SSV do AdMob, assinado pelo Google e restrito aos blocos autorizados. O aplicativo apenas aguarda o registro no extrato. O endpoint `/v1/ads/rewarded/claim` atende somente a blocos de teste em desenvolvimento.
+10. **Compras no Android**: consumíveis Google Play validados no servidor antes do consumo, com `autoConsume` desligado. Se a validação falhar, a compra continua pendente e é retomada ao reabrir o app. O checkout Web fica restrito à plataforma Web.
+11. **Banco de dados**: SQLite por padrão e PostgreSQL quando `META_FEITA_DATABASE_URL` está definida, com trava por carteira durante cada transação.
 

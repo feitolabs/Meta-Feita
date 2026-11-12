@@ -55,8 +55,9 @@ class InflationEngine {
       final monthInf = (m - 1) < input.variableMonthlyInflation.length
           ? input.variableMonthlyInflation[m - 1]
           : infMonthly;
-      infFactorCum =
-          DecimalMath.roundInternal(infFactorCum * (Decimal.one + monthInf));
+      infFactorCum = DecimalMath.roundInternal(
+        infFactorCum * (Decimal.one + monthInf),
+      );
       final realVal = infFactorCum <= Decimal.zero
           ? Decimal.zero
           : DecimalMath.div(nomVal, infFactorCum);

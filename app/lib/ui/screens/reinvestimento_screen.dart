@@ -9,6 +9,7 @@ import '../../domain/models/simulation_models.dart';
 import '../../domain/rules/formatters.dart';
 import '../../domain/validation/input_validators.dart';
 import '../theme/meta_feita_theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/cards.dart';
 import '../widgets/chart_card.dart';
 import '../widgets/inputs.dart';
@@ -81,7 +82,9 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
     final aporte = _aporteCtrl.text.trim().isEmpty
         ? Decimal.zero
         : PtBrFormatters.parseUserDecimal(_aporteCtrl.text);
-    if (aporte == null) errors['additionalMonthlyContribution'] = 'Valor inválido.';
+    if (aporte == null) {
+      errors['additionalMonthlyContribution'] = 'Valor inválido.';
+    }
     final pct = _reinvMode == ReinvestmentMode.percentage
         ? PtBrFormatters.parseUserDecimal(_pctCtrl.text)
         : Decimal.fromInt(100);
@@ -137,6 +140,7 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Text('Salvar simulação', style: MfText.tituloCartao),
         content: TextField(
           controller: titleCtrl,
@@ -272,13 +276,21 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
                 value: _frequency,
                 options: const [
                   SegmentedChoiceOption(
-                      value: DividendFrequency.monthly, label: 'Mensal'),
+                    value: DividendFrequency.monthly,
+                    label: 'Mensal',
+                  ),
                   SegmentedChoiceOption(
-                      value: DividendFrequency.quarterly, label: 'Trimestral'),
+                    value: DividendFrequency.quarterly,
+                    label: 'Trimestral',
+                  ),
                   SegmentedChoiceOption(
-                      value: DividendFrequency.semiannual, label: 'Semestral'),
+                    value: DividendFrequency.semiannual,
+                    label: 'Semestral',
+                  ),
                   SegmentedChoiceOption(
-                      value: DividendFrequency.annual, label: 'Anual'),
+                    value: DividendFrequency.annual,
+                    label: 'Anual',
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() => _frequency = v);
@@ -291,11 +303,17 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
                 value: _reinvMode,
                 options: const [
                   SegmentedChoiceOption(
-                      value: ReinvestmentMode.full, label: 'Integral (100%)'),
+                    value: ReinvestmentMode.full,
+                    label: 'Integral (100%)',
+                  ),
                   SegmentedChoiceOption(
-                      value: ReinvestmentMode.percentage, label: 'Percentual'),
+                    value: ReinvestmentMode.percentage,
+                    label: 'Percentual',
+                  ),
                   SegmentedChoiceOption(
-                      value: ReinvestmentMode.none, label: 'Nenhum'),
+                    value: ReinvestmentMode.none,
+                    label: 'Nenhum',
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() => _reinvMode = v);
@@ -319,9 +337,13 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
                 value: _qtyMode,
                 options: const [
                   SegmentedChoiceOption(
-                      value: QuantityMode.integer, label: 'Cotas inteiras'),
+                    value: QuantityMode.integer,
+                    label: 'Cotas inteiras',
+                  ),
                   SegmentedChoiceOption(
-                      value: QuantityMode.fractional, label: 'Fracionárias'),
+                    value: QuantityMode.fractional,
+                    label: 'Fracionárias',
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() => _qtyMode = v);
@@ -369,8 +391,9 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
                     children: [
                       Text(
                         'POSIÇÃO FINAL ESTIMADA',
-                        style: MfText.legenda
-                            .copyWith(color: MfColors.azulRioClaro),
+                        style: MfText.legenda.copyWith(
+                          color: MfColors.azulRioClaro,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -400,14 +423,17 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
                               children: [
                                 Text(
                                   'Proventos recebidos',
-                                  style: MfText.pequeno
-                                      .copyWith(color: MfColors.nevoaClaro),
+                                  style: MfText.pequeno.copyWith(
+                                    color: MfColors.nevoaClaro,
+                                  ),
                                 ),
                                 Text(
                                   PtBrFormatters.money(
-                                      res.totalDividendsReceived),
-                                  style: MfText.tituloCartao
-                                      .copyWith(color: Colors.white),
+                                    res.totalDividendsReceived,
+                                  ),
+                                  style: MfText.tituloCartao.copyWith(
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -418,13 +444,15 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
                               children: [
                                 Text(
                                   'Caixa residual',
-                                  style: MfText.pequeno
-                                      .copyWith(color: MfColors.nevoaClaro),
+                                  style: MfText.pequeno.copyWith(
+                                    color: MfColors.nevoaClaro,
+                                  ),
                                 ),
                                 Text(
                                   PtBrFormatters.money(res.finalResidualCash),
-                                  style: MfText.tituloCartao
-                                      .copyWith(color: Colors.white),
+                                  style: MfText.tituloCartao.copyWith(
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -442,8 +470,12 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
                     ChartSeriesData(
                       label: 'Valor da posição + caixa',
                       spots: res.series
-                          .map((e) => FlSpot(e.periodIndex.toDouble(),
-                              e.estimatedPositionValue.toDouble()))
+                          .map(
+                            (e) => FlSpot(
+                              e.periodIndex.toDouble(),
+                              e.estimatedPositionValue.toDouble(),
+                            ),
+                          )
                           .toList(),
                       color: MfColors.petroleo,
                       fillArea: true,
@@ -452,6 +484,7 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
                   ],
                 ),
                 const SizedBox(height: 14),
+                SafeAdBannerSlot(ads: widget.controller.ads),
                 AssumptionDisclosure(assumptions: res.assumptions),
               ],
             ],
@@ -472,4 +505,3 @@ class _ReinvestimentoScreenState extends State<ReinvestimentoScreen>
     );
   }
 }
-

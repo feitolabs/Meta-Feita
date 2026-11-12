@@ -91,7 +91,11 @@ class _AppShellState extends State<AppShell> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text('Código de recuperação de créditos', style: MfText.tituloCartao),
+        scrollable: true,
+        title: Text(
+          'Código de recuperação de créditos',
+          style: MfText.tituloCartao,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,9 +126,9 @@ class _AppShellState extends State<AppShell> {
               Clipboard.setData(
                 ClipboardData(text: 'Carteira: $walletRef | Código: $code'),
               );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Código copiado.')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Código copiado.')));
             },
             child: const Text('Copiar'),
           ),
@@ -150,7 +154,8 @@ class _AppShellState extends State<AppShell> {
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth >= _desktopBreakpoint;
             return PopScope(
-              canPop: _currentRoute == _lastRootTab &&
+              canPop:
+                  _currentRoute == _lastRootTab &&
                   _currentRoute == AppRoute.painel,
               onPopInvokedWithResult: (didPop, _) {
                 if (!didPop) {
@@ -240,66 +245,74 @@ class _AppShellState extends State<AppShell> {
     final back = isDesktop ? null : _goBackToRootTab;
     return switch (route) {
       AppRoute.painel => PainelScreen(
-          controller: widget.controller,
-          onNavigate: _navigate,
-          isDesktop: isDesktop,
-        ),
+        controller: widget.controller,
+        onNavigate: _navigate,
+        isDesktop: isDesktop,
+      ),
       AppRoute.jurosCompostos => JurosCompostosScreen(
-          controller: widget.controller,
-          initialSimulation: _openedSimulations[AppRoute.jurosCompostos],
-          onBack: back,
-        ),
+        controller: widget.controller,
+        initialSimulation: _openedSimulations[AppRoute.jurosCompostos],
+        onBack: back,
+      ),
       AppRoute.dividendos => DividendosScreen(
-          controller: widget.controller,
-          initialSimulation: _openedSimulations[AppRoute.dividendos],
-          onBack: back,
-        ),
+        controller: widget.controller,
+        initialSimulation: _openedSimulations[AppRoute.dividendos],
+        onBack: back,
+      ),
       AppRoute.reinvestimento => ReinvestimentoScreen(
-          controller: widget.controller,
-          initialSimulation: _openedSimulations[AppRoute.reinvestimento],
-          onBack: back,
-        ),
+        controller: widget.controller,
+        initialSimulation: _openedSimulations[AppRoute.reinvestimento],
+        onBack: back,
+      ),
       AppRoute.metas => MetasScreen(controller: widget.controller),
       AppRoute.comparador => ComparadorScreen(
-          controller: widget.controller,
-          onBack: back,
-        ),
+        controller: widget.controller,
+        onBack: back,
+      ),
       AppRoute.inflacao => InflacaoScreen(
-          controller: widget.controller,
-          onBack: back,
-        ),
+        controller: widget.controller,
+        onBack: back,
+      ),
       AppRoute.retirada => RetiradasScreen(
-          controller: widget.controller,
-          onBack: back,
-        ),
+        controller: widget.controller,
+        onBack: back,
+      ),
       AppRoute.aposentadoria => AposentadoriaScreen(
-          controller: widget.controller,
-          onBack: back,
-        ),
+        controller: widget.controller,
+        onBack: back,
+      ),
       AppRoute.historico => HistoricoScreen(
-          controller: widget.controller,
-          onNavigate: _navigate,
-          onBack: null,
-        ),
+        controller: widget.controller,
+        onNavigate: _navigate,
+        onBack: null,
+      ),
       AppRoute.creditos => CreditosScreen(
-          controller: widget.controller,
-          onBack: null,
-        ),
+        controller: widget.controller,
+        onBack: null,
+      ),
       AppRoute.configuracoes => ConfiguracoesScreen(
-          controller: widget.controller,
-          onNavigate: (r) => _navigate(r),
-          onBack: back,
-        ),
-      AppRoute.privacidade => PrivacidadeScreen(onBack: () {
+        controller: widget.controller,
+        onNavigate: (r) => _navigate(r),
+        onBack: back,
+      ),
+      AppRoute.privacidade => PrivacidadeScreen(
+        onBack: () {
           setState(() {
-            _currentRoute = isDesktop ? AppRoute.painel : AppRoute.configuracoes;
+            _currentRoute = isDesktop
+                ? AppRoute.painel
+                : AppRoute.configuracoes;
           });
-        }),
-      AppRoute.termos => TermosScreen(onBack: () {
+        },
+      ),
+      AppRoute.termos => TermosScreen(
+        onBack: () {
           setState(() {
-            _currentRoute = isDesktop ? AppRoute.painel : AppRoute.configuracoes;
+            _currentRoute = isDesktop
+                ? AppRoute.painel
+                : AppRoute.configuracoes;
           });
-        }),
+        },
+      ),
     };
   }
 }
@@ -406,10 +419,7 @@ class _DesktopSidebar extends StatelessWidget {
   final AppRoute currentRoute;
   final ValueChanged<AppRoute> onSelect;
 
-  const _DesktopSidebar({
-    required this.currentRoute,
-    required this.onSelect,
-  });
+  const _DesktopSidebar({required this.currentRoute, required this.onSelect});
 
   static const List<AppRoute> _topItems = [
     AppRoute.painel,
@@ -453,7 +463,8 @@ class _DesktopSidebar extends StatelessWidget {
           for (final route in _bottomItems)
             _SidebarNavTile(
               route: route,
-              selected: currentRoute == route ||
+              selected:
+                  currentRoute == route ||
                   (route == AppRoute.configuracoes &&
                       (currentRoute == AppRoute.privacidade ||
                           currentRoute == AppRoute.termos)),
@@ -519,10 +530,7 @@ class _MobileBottomBar extends StatelessWidget {
   final AppRoute currentRoute;
   final ValueChanged<AppRoute> onSelect;
 
-  const _MobileBottomBar({
-    required this.currentRoute,
-    required this.onSelect,
-  });
+  const _MobileBottomBar({required this.currentRoute, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -564,20 +572,25 @@ class _MobileBottomBar extends StatelessWidget {
                         child: MetaFeitaIcon(
                           item.icon,
                           size: 20,
-                          color:
-                              selected ? MfColors.areia : MfColors.inkMuted,
+                          color: selected ? MfColors.areia : MfColors.inkMuted,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        style: MfText.pequeno.copyWith(
-                          fontSize: 12,
-                          fontWeight:
-                              selected ? FontWeight.w700 : FontWeight.w500,
-                          color: selected
-                              ? MfColors.petroleo
-                              : MfColors.inkMuted,
+                      MediaQuery.withClampedTextScaling(
+                        maxScaleFactor: 1.2,
+                        child: Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: MfText.pequeno.copyWith(
+                            fontSize: 12,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: selected
+                                ? MfColors.petroleo
+                                : MfColors.inkMuted,
+                          ),
                         ),
                       ),
                     ],

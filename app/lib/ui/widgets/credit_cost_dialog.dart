@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../infrastructure/ads/ad_service.dart';
 import '../theme/meta_feita_theme.dart';
-import 'cards.dart';
 import 'meta_feita_buttons.dart';
 import 'meta_feita_icon.dart';
 
@@ -18,6 +16,7 @@ Future<bool> showCreditCostConfirmationDialog(
     context: context,
     builder: (ctx) {
       return AlertDialog(
+        scrollable: true,
         contentPadding: const EdgeInsets.all(22),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -58,8 +57,9 @@ Future<bool> showCreditCostConfirmationDialog(
                   child: PetroleoDarkButton(
                     label: 'Usar créditos',
                     compact: true,
-                    onPressed:
-                        after >= 0 ? () => Navigator.of(ctx).pop(true) : null,
+                    onPressed: after >= 0
+                        ? () => Navigator.of(ctx).pop(true)
+                        : null,
                   ),
                 ),
               ],
@@ -93,52 +93,15 @@ class OfflineNoticeBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const MetaFeitaIcon(MfIcon.online, size: 18, color: MfColors.petroleo),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(message, style: MfText.pequeno),
+          const MetaFeitaIcon(
+            MfIcon.online,
+            size: 18,
+            color: MfColors.petroleo,
           ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message, style: MfText.pequeno)),
         ],
       ),
     );
   }
 }
-
-/// Slot de banner não intrusivo (Doc 01 §5.1 e §9):
-/// Nunca colocado sobre campos de entrada nem antes do resultado básico.
-class SafeAdBannerSlot extends StatelessWidget {
-  const SafeAdBannerSlot({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return LightCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      backgroundColor: MfColors.areiaSubtle.withValues(alpha: 0.7),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: MfColors.nevoaSoft.withValues(alpha: 0.45),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              'ANÚNCIO',
-              style: MfText.legenda.copyWith(fontSize: 11),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              AdService.isUsingTestIds
-                  ? 'Espaço publicitário (modo teste · sem dados financeiros)'
-                  : 'Espaço publicitário contextual · sem rastreio financeiro',
-              style: MfText.pequeno,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-

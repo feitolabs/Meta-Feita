@@ -15,11 +15,7 @@ class ComparatorEngine {
     for (final s in scenarios) {
       final result = CompoundInterestEngine.calculate(s.input);
       outputs.add(
-        ComparatorScenarioOutput(
-          name: s.name,
-          input: s.input,
-          result: result,
-        ),
+        ComparatorScenarioOutput(name: s.name, input: s.input, result: result),
       );
     }
 

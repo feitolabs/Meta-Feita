@@ -15,7 +15,7 @@ import '../widgets/meta_feita_icon.dart';
 class PainelScreen extends StatelessWidget {
   final AppController controller;
   final void Function(AppRoute route, {SavedSimulation? openSimulation})
-      onNavigate;
+  onNavigate;
   final bool isDesktop;
 
   const PainelScreen({
@@ -61,20 +61,26 @@ class PainelScreen extends StatelessWidget {
               icon: const MetaFeitaIcon(MfIcon.ajustes, size: 22),
             ),
             const SizedBox(width: 4),
-            _CreditBalanceChip(
-              balance: controller.creditBalance,
-              confirmed: controller.isBalanceConfirmed,
-              onTap: () => onNavigate(AppRoute.creditos),
+            // Limite em vez de flex: o título mantém todo o espaço que sobrar.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * 0.42,
+              ),
+              child: _CreditBalanceChip(
+                balance: controller.creditBalance,
+                confirmed: controller.isBalanceConfirmed,
+                onTap: () => onNavigate(AppRoute.creditos),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 22),
-        Text('PAINEL', style: MfText.legenda.copyWith(color: MfColors.inkMuted)),
-        const SizedBox(height: 6),
         Text(
-          'Planeje com números que você entende.',
-          style: MfText.titulo,
+          'PAINEL',
+          style: MfText.legenda.copyWith(color: MfColors.inkMuted),
         ),
+        const SizedBox(height: 6),
+        Text('Planeje com números que você entende.', style: MfText.titulo),
         const SizedBox(height: 10),
         Text(
           'Simulações feitas com os valores que você informa, guardadas só neste aparelho.',
@@ -119,10 +125,8 @@ class PainelScreen extends StatelessWidget {
           for (final sim in recent) ...[
             _RecentSimulationTile(
               sim: sim,
-              onTap: () => onNavigate(
-                _routeForType(sim.type),
-                openSimulation: sim,
-              ),
+              onTap: () =>
+                  onNavigate(_routeForType(sim.type), openSimulation: sim),
             ),
             const SizedBox(height: 10),
           ],
@@ -400,7 +404,7 @@ class PainelScreen extends StatelessWidget {
         const spacing = 12.0;
         final itemWidth =
             (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /
-                crossAxisCount;
+            crossAxisCount;
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
@@ -451,22 +455,54 @@ class PainelScreen extends StatelessWidget {
 
   void _openNewSimulationChooser(BuildContext context) {
     final options = [
-      (AppRoute.jurosCompostos, MfIcon.jurosCompostos, 'Juros compostos',
-          'Capital, aportes, taxa e evolução mês a mês'),
-      (AppRoute.dividendos, MfIcon.dividendos, 'Dividendos',
-          'Proventos por cota, calendário e meta de renda'),
-      (AppRoute.reinvestimento, MfIcon.reinvestimento, 'Reinvestimento',
-          'Cotas compradas e caixa residual'),
-      (AppRoute.metas, MfIcon.metas, 'Metas financeiras',
-          'Aporte necessário e prazo estimado'),
-      (AppRoute.comparador, MfIcon.comparador, 'Comparador de cenários',
-          'Compare de 2 a 4 cenários lado a lado'),
-      (AppRoute.inflacao, MfIcon.inflacao, 'Inflação e retorno real',
-          'Taxa real de Fisher e poder de compra'),
-      (AppRoute.retirada, MfIcon.retirada, 'Simulador de retiradas',
-          'Saques periódicos e risco de esgotamento'),
-      (AppRoute.aposentadoria, MfIcon.aposentadoria, 'Aposentadoria',
-          'Acumulação e renda real estimada'),
+      (
+        AppRoute.jurosCompostos,
+        MfIcon.jurosCompostos,
+        'Juros compostos',
+        'Capital, aportes, taxa e evolução mês a mês',
+      ),
+      (
+        AppRoute.dividendos,
+        MfIcon.dividendos,
+        'Dividendos',
+        'Proventos por cota, calendário e meta de renda',
+      ),
+      (
+        AppRoute.reinvestimento,
+        MfIcon.reinvestimento,
+        'Reinvestimento',
+        'Cotas compradas e caixa residual',
+      ),
+      (
+        AppRoute.metas,
+        MfIcon.metas,
+        'Metas financeiras',
+        'Aporte necessário e prazo estimado',
+      ),
+      (
+        AppRoute.comparador,
+        MfIcon.comparador,
+        'Comparador de cenários',
+        'Compare de 2 a 4 cenários lado a lado',
+      ),
+      (
+        AppRoute.inflacao,
+        MfIcon.inflacao,
+        'Inflação e retorno real',
+        'Taxa real de Fisher e poder de compra',
+      ),
+      (
+        AppRoute.retirada,
+        MfIcon.retirada,
+        'Simulador de retiradas',
+        'Saques periódicos e risco de esgotamento',
+      ),
+      (
+        AppRoute.aposentadoria,
+        MfIcon.aposentadoria,
+        'Aposentadoria',
+        'Acumulação e renda real estimada',
+      ),
     ];
 
     showModalBottomSheet<void>(
@@ -490,7 +526,10 @@ class PainelScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text('Escolha uma simulação', style: MfText.subtitulo),
+                        child: Text(
+                          'Escolha uma simulação',
+                          style: MfText.subtitulo,
+                        ),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(ctx).pop(),
@@ -522,7 +561,9 @@ class PainelScreen extends StatelessWidget {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: MfColors.nevoaSoft.withValues(alpha: 0.6),
+                                color: MfColors.nevoaSoft.withValues(
+                                  alpha: 0.6,
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               alignment: Alignment.center,
@@ -557,15 +598,15 @@ class PainelScreen extends StatelessWidget {
   }
 
   AppRoute _routeForType(SimulationType type) => switch (type) {
-        SimulationType.compoundInterest => AppRoute.jurosCompostos,
-        SimulationType.dividends => AppRoute.dividendos,
-        SimulationType.reinvestment => AppRoute.reinvestimento,
-        SimulationType.goal => AppRoute.metas,
-        SimulationType.comparator => AppRoute.comparador,
-        SimulationType.inflation => AppRoute.inflacao,
-        SimulationType.withdrawal => AppRoute.retirada,
-        SimulationType.retirement => AppRoute.aposentadoria,
-      };
+    SimulationType.compoundInterest => AppRoute.jurosCompostos,
+    SimulationType.dividends => AppRoute.dividendos,
+    SimulationType.reinvestment => AppRoute.reinvestimento,
+    SimulationType.goal => AppRoute.metas,
+    SimulationType.comparator => AppRoute.comparador,
+    SimulationType.inflation => AppRoute.inflacao,
+    SimulationType.withdrawal => AppRoute.retirada,
+    SimulationType.retirement => AppRoute.aposentadoria,
+  };
 
   String _formatDate(DateTime dt) {
     final d = dt.day.toString().padLeft(2, '0');
@@ -604,9 +645,13 @@ class _CreditBalanceChip extends StatelessWidget {
             children: [
               const MetaFeitaIcon(MfIcon.creditos, size: 16),
               const SizedBox(width: 6),
-              Text(
-                '$balance crédito${balance == 1 ? '' : 's'}',
-                style: MfText.rotulo.copyWith(fontSize: 13.5),
+              Flexible(
+                child: Text(
+                  '$balance crédito${balance == 1 ? '' : 's'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: MfText.rotulo.copyWith(fontSize: 13.5),
+                ),
               ),
               if (!confirmed) ...[
                 const SizedBox(width: 4),
@@ -615,10 +660,7 @@ class _CreditBalanceChip extends StatelessWidget {
                   height: 6,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: MfColors.petroleo,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: MfColors.petroleo, width: 1.5),
                   ),
                 ),
               ],
@@ -696,7 +738,9 @@ class _FocusGoalCard extends StatelessWidget {
                 Flexible(
                   child: Text(
                     'META EM FOCO',
-                    style: MfText.legenda.copyWith(color: MfColors.azulRioClaro),
+                    style: MfText.legenda.copyWith(
+                      color: MfColors.azulRioClaro,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

@@ -8,6 +8,7 @@ import '../../domain/models/simulation_models.dart';
 import '../../domain/rules/formatters.dart';
 import '../../domain/validation/input_validators.dart';
 import '../theme/meta_feita_theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/cards.dart';
 import '../widgets/chart_card.dart';
 import '../widgets/inputs.dart';
@@ -18,11 +19,7 @@ class InflacaoScreen extends StatefulWidget {
   final AppController controller;
   final VoidCallback? onBack;
 
-  const InflacaoScreen({
-    super.key,
-    required this.controller,
-    this.onBack,
-  });
+  const InflacaoScreen({super.key, required this.controller, this.onBack});
 
   @override
   State<InflacaoScreen> createState() => _InflacaoScreenState();
@@ -126,7 +123,9 @@ class _InflacaoScreenState extends State<InflacaoScreen>
       },
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Simulação de inflação salva no histórico.')),
+      const SnackBar(
+        content: Text('Simulação de inflação salva no histórico.'),
+      ),
     );
   }
 
@@ -149,8 +148,10 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                       icon: const MetaFeitaIcon(MfIcon.voltar, size: 22),
                     ),
                   Expanded(
-                    child:
-                        Text('Inflação e retorno real', style: MfText.subtitulo),
+                    child: Text(
+                      'Inflação e retorno real',
+                      style: MfText.subtitulo,
+                    ),
                   ),
                   IconButton(
                     onPressed: () => showFormulaExplanationSheet(
@@ -174,9 +175,13 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                 value: _period,
                 options: const [
                   SegmentedChoiceOption(
-                      value: RatePeriod.annual, label: 'Ao ano'),
+                    value: RatePeriod.annual,
+                    label: 'Ao ano',
+                  ),
                   SegmentedChoiceOption(
-                      value: RatePeriod.monthly, label: 'Ao mês'),
+                    value: RatePeriod.monthly,
+                    label: 'Ao mês',
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() => _period = v);
@@ -190,8 +195,9 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                     child: PercentageInput(
                       label: 'Retorno nominal',
                       controller: _nomCtrl,
-                      suffixText:
-                          _period == RatePeriod.annual ? '% a.a.' : '% a.m.',
+                      suffixText: _period == RatePeriod.annual
+                          ? '% a.a.'
+                          : '% a.m.',
                       errorText: _errors['nominalRate'],
                       onChanged: (_) => _recompute(),
                     ),
@@ -201,8 +207,9 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                     child: PercentageInput(
                       label: 'Inflação',
                       controller: _infCtrl,
-                      suffixText:
-                          _period == RatePeriod.annual ? '% a.a.' : '% a.m.',
+                      suffixText: _period == RatePeriod.annual
+                          ? '% a.a.'
+                          : '% a.m.',
                       errorText: _errors['inflationRate'],
                       onChanged: (_) => _recompute(),
                     ),
@@ -240,8 +247,9 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                     children: [
                       Text(
                         'RETORNO REAL ANUAL (FISHER)',
-                        style: MfText.legenda
-                            .copyWith(color: MfColors.azulRioClaro),
+                        style: MfText.legenda.copyWith(
+                          color: MfColors.azulRioClaro,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -270,13 +278,17 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                               children: [
                                 Text(
                                   'Valor nominal futuro',
-                                  style: MfText.pequeno
-                                      .copyWith(color: MfColors.nevoaClaro),
+                                  style: MfText.pequeno.copyWith(
+                                    color: MfColors.nevoaClaro,
+                                  ),
                                 ),
                                 Text(
-                                  PtBrFormatters.money(res.projectedNominalValue),
-                                  style: MfText.tituloCartao
-                                      .copyWith(color: Colors.white),
+                                  PtBrFormatters.money(
+                                    res.projectedNominalValue,
+                                  ),
+                                  style: MfText.tituloCartao.copyWith(
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -287,13 +299,15 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                               children: [
                                 Text(
                                   'Poder de compra hoje',
-                                  style: MfText.pequeno
-                                      .copyWith(color: MfColors.nevoaClaro),
+                                  style: MfText.pequeno.copyWith(
+                                    color: MfColors.nevoaClaro,
+                                  ),
                                 ),
                                 Text(
                                   PtBrFormatters.money(res.projectedRealValue),
-                                  style: MfText.tituloCartao
-                                      .copyWith(color: Colors.white),
+                                  style: MfText.tituloCartao.copyWith(
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -311,8 +325,12 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                     ChartSeriesData(
                       label: 'Valor nominal',
                       spots: res.series
-                          .map((p) => FlSpot(
-                              p.month.toDouble(), p.nominalValue.toDouble()))
+                          .map(
+                            (p) => FlSpot(
+                              p.month.toDouble(),
+                              p.nominalValue.toDouble(),
+                            ),
+                          )
                           .toList(),
                       color: MfColors.petroleo,
                       fillArea: true,
@@ -320,8 +338,12 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                     ChartSeriesData(
                       label: 'Poder de compra (real)',
                       spots: res.series
-                          .map((p) =>
-                              FlSpot(p.month.toDouble(), p.realValue.toDouble()))
+                          .map(
+                            (p) => FlSpot(
+                              p.month.toDouble(),
+                              p.realValue.toDouble(),
+                            ),
+                          )
                           .toList(),
                       color: MfColors.azulRio,
                       dashed: true,
@@ -329,6 +351,7 @@ class _InflacaoScreenState extends State<InflacaoScreen>
                   ],
                 ),
                 const SizedBox(height: 14),
+                SafeAdBannerSlot(ads: widget.controller.ads),
                 AssumptionDisclosure(assumptions: res.assumptions),
               ],
             ],

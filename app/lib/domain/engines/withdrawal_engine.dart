@@ -70,14 +70,17 @@ class WithdrawalEngine {
           actual = requested;
           balance = DecimalMath.roundInternal(balance - requested);
         } else {
-          actual = balance > Decimal.zero ? DecimalMath.moneyRound(balance) : Decimal.zero;
+          actual = balance > Decimal.zero
+              ? DecimalMath.moneyRound(balance)
+              : Decimal.zero;
           deficit = DecimalMath.moneyRound(requested - actual);
           balance = Decimal.zero;
           depletionPeriod ??= m;
         }
       }
 
-      final periodReturn = (balance > Decimal.zero && monthlyRate != Decimal.zero)
+      final periodReturn =
+          (balance > Decimal.zero && monthlyRate != Decimal.zero)
           ? DecimalMath.roundInternal(balance * monthlyRate)
           : Decimal.zero;
       balance = DecimalMath.roundInternal(balance + periodReturn);
@@ -90,7 +93,9 @@ class WithdrawalEngine {
           actual = requested;
           balance = DecimalMath.roundInternal(balance - requested);
         } else {
-          actual = balance > Decimal.zero ? DecimalMath.moneyRound(balance) : Decimal.zero;
+          actual = balance > Decimal.zero
+              ? DecimalMath.moneyRound(balance)
+              : Decimal.zero;
           deficit = DecimalMath.moneyRound(requested - actual);
           balance = Decimal.zero;
           depletionPeriod ??= m;
@@ -153,4 +158,3 @@ class WithdrawalEngine {
     }
   }
 }
-

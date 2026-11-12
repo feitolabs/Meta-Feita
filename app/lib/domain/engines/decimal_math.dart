@@ -43,7 +43,9 @@ class DecimalMath {
   static Decimal nthRoot(Decimal value, int n) {
     if (n <= 0) throw ArgumentError('Índice da raiz deve ser positivo.');
     if (value < Decimal.zero) {
-      throw ArgumentError('Não é possível calcular raiz par/real de número negativo: $value');
+      throw ArgumentError(
+        'Não é possível calcular raiz par/real de número negativo: $value',
+      );
     }
     if (value == Decimal.zero) return Decimal.zero;
     if (value == Decimal.one || n == 1) return value;
@@ -67,4 +69,3 @@ class DecimalMath {
     return roundInternal(x);
   }
 }
-
